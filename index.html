@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>계약운임표 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f5; margin: 0; }
+    .btn-primary   { background:#FFD600; color:#111; font-weight:700; border:none; cursor:pointer; border-radius:6px; padding:8px 18px; font-size:14px; }
+    .btn-primary:hover   { background:#f0c800; }
+    .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-secondary { background:#fff; color:#333; font-weight:600; border:1.5px solid #ddd; cursor:pointer; border-radius:6px; padding:8px 18px; font-size:14px; }
+    .btn-secondary:hover { background:#f5f5f5; }
+    .btn-danger    { background:#fff; color:#e53e3e; font-weight:600; border:1.5px solid #e53e3e; cursor:pointer; border-radius:6px; padding:8px 18px; font-size:14px; }
+    .btn-danger:hover    { background:#fff5f5; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+    .modal-box     { background:#fff; border-radius:12px; width:860px; max-width:97vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
+    .modal-header  { padding:20px 28px 16px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .modal-body    { flex:1; overflow:auto; padding:24px 28px; }
+    .modal-footer  { padding:16px 28px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; }
+    .region-btn    { width:100%; text-align:left; padding:7px 12px; border:none; background:none; cursor:pointer; border-radius:5px; color:#1a56db; font-size:14px; }
+    .region-btn:hover  { background:#eff6ff; }
+    .region-btn.on     { font-weight:700; }
+    .region-btn.on::after { content:' ✓'; }
+    .check-item    { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; font-size:13px; cursor:pointer; }
+    .check-item:hover { background:#f5f5f5; }
+    .check-item input { width:15px; height:15px; cursor:pointer; accent-color:#1a56db; flex-shrink:0; }
+    .breadcrumb-btn { background:none; border:none; cursor:pointer; color:#1a56db; font-size:13px; padding:0; }
+    .breadcrumb-btn:hover { text-decoration:underline; }
+    .grid-wrap     { overflow-x:auto; }
+    .grid-table    { border-collapse:collapse; font-size:13px; min-width:100%; }
+    .grid-table th { background:#f7f8fa; border:1px solid #e2e8f0; padding:8px 10px; white-space:nowrap; text-align:center; position:sticky; top:0; z-index:1; }
+    .grid-table td { border:1px solid #e2e8f0; padding:0; }
+    .addr-cell     { padding:7px 12px !important; background:#fafafa; white-space:nowrap; font-size:13px; }
+    .fare-input    { width:100%; border:none; background:transparent; text-align:right; font-size:13px; padding:6px 8px; outline:none; min-width:90px; }
+    .fare-input:focus { background:#fffbe6; }
+    .fare-input.filled { color:#c53030; font-weight:600; }
+    .section-box   { background:#fff; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.07); padding:20px 24px; margin-bottom:16px; }
+    select.sel     { border:1.5px solid #ddd; border-radius:6px; padding:7px 12px; font-size:13px; background:#fff; cursor:pointer; outline:none; width:100%; }
+    select.sel:focus { border-color:#1a56db; }
+    .th-veh        { position:relative; min-width:120px; }
+    .th-veh .del-btn { position:absolute; top:3px; right:4px; background:none; border:none; cursor:pointer; color:#bbb; font-size:11px; line-height:1; padding:0; }
+    .th-veh .del-btn:hover { color:#e53e3e; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ===================== 지역 데이터 =====================
+const REGION = {"서울시":["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],"부산시":["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],"대구시":["군위군","남구","달서구","달성군","동구","북구","서구","수성구","중구"],"인천시":["강화군","계양구","남동구","동구","미추홀구","부평구","서구","연수구","옹진군","중구"],"광주시":["광산구","남구","동구","북구","서구"],"대전시":["대덕구","동구","서구","유성구","중구"],"울산시":["남구","동구","북구","울주군","중구"],"경기도":["가평군","고양 덕양구","고양 일산동구","고양 일산서구","과천시","광명시","광주시","구리시","군포시","김포시","남양주시","동두천시","부천시","성남 분당구","성남 수정구","성남 중원구","수원 권선구","수원 영통구","수원 장안구","수원 팔달구","시흥시","안산 단원구","안산 상록구","안성시","안양 동안구","안양 만안구","양주시","양평군","여주시","연천군","오산시","용인 기흥구","용인 수지구","용인 처인구","의왕시","의정부시","이천시","파주시","평택시","포천시","하남시","부천 소사구","부천 오정구","부천 원미구","화성 동탄구","화성 만세구","화성 병점구","화성 효행구"],"강원도":["강릉시","고성군","동해시","삼척시","속초시","양구군","양양군","영월군","원주시","인제군","정선군","철원군","춘천시","태백시","평창군","홍천군","화천군","횡성군"],"충청북도":["괴산군","단양군","보은군","영동군","옥천군","음성군","제천시","증평군","진천군","청주 상당구","청주 서원구","청주 청원구","청주 흥덕구","충주시"],"충청남도":["계룡시","공주시","금산군","논산시","당진시","보령시","부여군","서산시","서천군","아산시","예산군","천안 동남구","천안 서북구","청양군","태안군","홍성군"],"전라북도":["고창군","군산시","김제시","남원시","무주군","부안군","순창군","완주군","익산시","임실군","장수군","전주 덕진구","전주 완산구","정읍시","진안군"],"전라남도":["강진군","고흥군","곡성군","광양시","구례군","나주시","담양군","목포시","무안군","보성군","순천시","신안군","여수시","영광군","영암군","완도군","장성군","장흥군","진도군","함평군","해남군","화순군"],"경상북도":["경산시","경주시","고령군","구미시","김천시","문경시","봉화군","상주시","성주군","안동시","영덕군","영양군","영주시","영천시","예천군","울릉군","울진군","의성군","청도군","청송군","칠곡군","포항 남구","포항 북구"],"경상남도":["거제시","거창군","고성군","김해시","남해군","밀양시","사천시","산청군","양산시","의령군","진주시","창녕군","창원 마산합포구","창원 마산회원구","창원 성산구","창원 의창구","창원 진해구","통영시","하동군","함안군","함양군","합천군"],"제주도":["서귀포시","제주시"]};
+
+const SIDO_FULL = {"서울시":"서울특별시","부산시":"부산광역시","대구시":"대구광역시","인천시":"인천광역시","광주시":"광주광역시","대전시":"대전광역시","울산시":"울산광역시","경기도":"경기도","강원도":"강원특별자치도","충청북도":"충청북도","충청남도":"충청남도","전라북도":"전라북도","전라남도":"전라남도","경상북도":"경상북도","경상남도":"경상남도","제주도":"제주특별자치도"};
+
+function fullAddr(sido, sigungu) {
+  return `${SIDO_FULL[sido] || sido} ${sigungu}`;
+}
+
+// ===================== 차량 데이터 =====================
+// 특성: "" = 특성없음(빈칸), 나머지는 명시
+const MID_TONS = ["1톤","1.4톤","2.5톤","3.5톤","5톤","5톤플러스","5톤축","8톤","9.5톤","11톤","14톤","18톤","22톤","25톤"];
+const VEHICLE_SPECS = {
+  "다마스":   { tons:["0.3톤"],                        specs:[""] },
+  "라보":     { tons:["0.5톤"],                        specs:["","리프트"] },
+  "카고/윙":  { tons:MID_TONS,                         specs:["","리프트"] },
+  "카고":     { tons:MID_TONS,                         specs:["","리프트"] },
+  "윙바디":   { tons:MID_TONS,                         specs:["","냉장","냉동(냉장포함)","리프트"] },
+  "탑":       { tons:MID_TONS,                         specs:["","냉장","냉동(냉장포함)","리프트"] },
+  "방통차":   { tons:["18톤","22톤","25톤"],            specs:[""] },
+  "트레일러": { tons:["18톤","22톤","25톤","20ft","40ft"], specs:["","냉장","냉동(냉장포함)","리프트"] },
+};
+
+// 전체 차량 목록 생성
+const VEHICLES = [];
+let _vid = 1;
+for (const [type, {tons, specs}] of Object.entries(VEHICLE_SPECS)) {
+  for (const ton of tons) {
+    for (const spec of specs) {
+      VEHICLES.push({ id: _vid++, 차종: type, 톤수: ton, 특성: spec, tmsCode: "" });
+    }
+  }
+}
+
+// 차량 표시명: 특성 빈칸이면 생략
+function vehLabel(v) {
+  const parts = [v.차종, v.톤수];
+  if (v.특성) parts.push(v.특성);
+  return parts.join(' ');
+}
+
+// ===================== 상태 =====================
+const S = {
+  origin: null,          // {sido, sigungu}
+  dests: [],             // [{id, sido, sigungu}]
+  selVehs: [],           // VEHICLES 항목들의 복사본 (추가된 차량)
+  fares: {},             // key: `${destId}_${vehId}` → 숫자
+  nextDestId: 1,
+
+  modal: null,           // 'origin'|'dest'|'vehicle'
+  // 지역 모달 임시 상태
+  m_sido: null,
+  m_left: [],            // 선택된 key 목록
+  m_right: [],           // [{sido, sigungu}] 확정
+  // 차량 모달 임시 상태
+  mv_type: "",
+  mv_tons: [],
+  mv_specs: [],
+  mv_right: [],          // 선택 완료 차량들
+};
+
+// ===================== 렌더 =====================
+function $(id) { return document.getElementById(id); }
+
+function render() {
+  $('app').innerHTML = html_app();
+  bind();
+}
+
+function html_app() {
+  return `
+  <div style="min-height:100vh; background:#f0f2f5;">
+    <header style="background:#111827; padding:0 32px; height:52px; display:flex; align-items:center; gap:12px;">
+      <span style="color:#FFD600; font-weight:900; font-size:17px; letter-spacing:-0.5px;">🚛 계약운임표 관리</span>
+    </header>
+    <div style="max-width:1280px; margin:24px auto; padding:0 16px;">
+      ${html_origin_section()}
+      ${html_grid_section()}
+    </div>
+    ${S.modal ? html_modal() : ''}
+  </div>`;
+}
+
+// --- 상차지 섹션 ---
+function html_origin_section() {
+  const addr = S.origin ? fullAddr(S.origin.sido, S.origin.sigungu) : null;
+  return `
+  <div class="section-box" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <span style="font-weight:700; font-size:14px; color:#374151;">📍 상차지</span>
+    ${addr
+      ? `<span style="background:#fefce8; border:1.5px solid #FFD600; border-radius:6px; padding:5px 14px; font-size:14px; font-weight:600;">${addr}</span>
+         <button class="btn-secondary" id="btnChangeOrigin" style="padding:5px 12px; font-size:13px;">변경</button>`
+      : `<button class="btn-primary" id="btnSetOrigin">+ 상차지 선택</button>`
+    }
+  </div>`;
+}
+
+// --- 운임표 그리드 섹션 ---
+function html_grid_section() {
+  return `
+  <div class="section-box">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+      <span style="font-weight:700; font-size:14px; color:#374151;">📋 운임표
+        <span style="font-size:12px; font-weight:400; color:#9ca3af; margin-left:8px;">
+          하차지 ${S.dests.length}개 · 차량 ${S.selVehs.length}개
+        </span>
+      </span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-secondary" id="btnAddDest" style="padding:6px 14px; font-size:13px;">+ 하차지 추가</button>
+        <button class="btn-secondary" id="btnAddVeh" style="padding:6px 14px; font-size:13px;">+ 차량 추가</button>
+        <button class="btn-secondary" id="btnDelDest" style="padding:6px 14px; font-size:13px; color:#e53e3e; border-color:#e53e3e;">선택 삭제</button>
+        ${S.dests.length > 0 && S.selVehs.length > 0
+          ? `<button class="btn-primary" id="btnExport" style="padding:6px 14px; font-size:13px;">⬇ 엑셀 다운로드</button>`
+          : ''}
+      </div>
+    </div>
+    ${html_grid()}
+  </div>`;
+}
+
+function html_grid() {
+  if (S.dests.length === 0 || S.selVehs.length === 0) {
+    return `<div style="text-align:center; padding:48px 0; color:#9ca3af; font-size:14px;">
+      ${S.dests.length === 0 ? '하차지를' : '차량을'} 추가하면 운임표가 표시됩니다.
+    </div>`;
+  }
+
+  const originAddr = S.origin ? fullAddr(S.origin.sido, S.origin.sigungu) : '(상차지 미설정)';
+
+  let t = `<div class="grid-wrap"><table class="grid-table"><thead><tr>
+    <th style="width:36px;"></th>
+    <th style="min-width:170px; text-align:left; padding-left:12px;">상차지역</th>
+    <th style="min-width:170px; text-align:left; padding-left:12px;">하차지역</th>`;
+
+  for (const v of S.selVehs) {
+    t += `<th class="th-veh">${vehLabel(v)}
+      <button class="del-veh-btn del-btn" data-id="${v.id}" title="차량 삭제">✕</button>
+    </th>`;
+  }
+  t += `</tr></thead><tbody>`;
+
+  for (const dest of S.dests) {
+    const destAddr = fullAddr(dest.sido, dest.sigungu);
+    t += `<tr>
+      <td style="text-align:center; padding:0 6px; background:#fafafa; border:1px solid #e2e8f0;">
+        <input type="checkbox" class="dest-chk" data-id="${dest.id}" style="cursor:pointer; accent-color:#e53e3e;" />
+      </td>
+      <td class="addr-cell">${originAddr}</td>
+      <td class="addr-cell">${destAddr}</td>`;
+    for (const v of S.selVehs) {
+      const key = `${dest.id}_${v.id}`;
+      const val = S.fares[key] ?? '';
+      t += `<td><input type="number" class="fare-input${val !== '' ? ' filled' : ''}"
+        data-key="${key}" value="${val}" placeholder="" min="0" /></td>`;
+    }
+    t += `</tr>`;
+  }
+
+  t += `</tbody></table></div>`;
+  return t;
+}
+
+// ===================== 모달 HTML =====================
+function html_modal() {
+  if (S.modal === 'origin' || S.modal === 'dest') return html_region_modal();
+  if (S.modal === 'vehicle') return html_vehicle_modal();
+  return '';
+}
+
+// --- 지역 모달 ---
+function html_region_modal() {
+  const isOrigin = S.modal === 'origin';
+  const title = isOrigin ? '상차지 선택' : '하차지 추가';
+  const confirmLabel = isOrigin ? '상차지 설정' : '하차지 추가하기';
+
+  // 왼쪽 패널
+  let leftHtml = '';
+  if (!S.m_sido) {
+    // 시/도 목록
+    leftHtml = `<div style="font-size:13px; color:#6b7280; margin-bottom:8px;">시/도를 선택하세요</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px;">`;
+    for (const sido of Object.keys(REGION)) {
+      leftHtml += `<button class="region-btn m-sido-btn" data-sido="${sido}">${sido}</button>`;
+    }
+    leftHtml += `</div>`;
+  } else {
+    const subList = REGION[S.m_sido] || [];
+    leftHtml = `
+      <div style="margin-bottom:10px; display:flex; align-items:center; gap:6px; font-size:13px;">
+        <button class="breadcrumb-btn" id="btnBackSido">시/도</button>
+        <span style="color:#9ca3af;">›</span>
+        <span style="font-weight:600; color:#111827;">${S.m_sido}</span>
+      </div>
+      <button class="btn-secondary" id="btnSelectAllSigungu"
+        style="width:100%; font-size:12px; padding:5px; margin-bottom:8px;">
+        전체 선택 (${subList.length}개)
+      </button>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px; max-height:320px; overflow-y:auto;">`;
+    for (const sg of subList) {
+      const key = `${S.m_sido}__${sg}`;
+      const on = S.m_left.includes(key);
+      leftHtml += `<button class="region-btn m-sg-btn ${on ? 'on' : ''}" data-key="${key}" data-sido="${S.m_sido}" data-sg="${sg}">${sg}</button>`;
+    }
+    leftHtml += `</div>
+      <button class="btn-primary" id="btnModalSelect"
+        style="width:100%; margin-top:12px; ${S.m_left.length === 0 ? 'opacity:0.4;cursor:not-allowed;' : ''}">
+        선택하기 (${S.m_left.length}개)
+      </button>`;
+  }
+
+  // 오른쪽 패널
+  let rightHtml = '';
+  if (S.m_right.length === 0) {
+    rightHtml = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:40px 0;">선택된 지역이 없습니다.</div>`;
+  } else {
+    rightHtml = `
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <label style="font-size:12px; color:#6b7280; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="chkRightAll" style="accent-color:#1a56db;" /> 전체 선택 (${S.m_right.length}개)
+        </label>
+        <button class="btn-danger" id="btnDelRight" style="padding:3px 10px; font-size:12px;">삭제</button>
+      </div>
+      <div style="max-height:340px; overflow-y:auto;">`;
+    for (let i = 0; i < S.m_right.length; i++) {
+      const r = S.m_right[i];
+      rightHtml += `<div class="check-item">
+        <input type="checkbox" class="right-chk" data-i="${i}" />
+        <span>${fullAddr(r.sido, r.sigungu)}</span>
+      </div>`;
+    }
+    rightHtml += `</div>`;
+  }
+
+  const canConfirm = isOrigin ? S.m_right.length > 0 : S.m_right.length > 0;
+
+  return `
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 style="font-size:17px; font-weight:700;">${title}</h2>
+        <button id="btnModalClose" style="background:none; border:none; font-size:22px; cursor:pointer; color:#9ca3af; line-height:1;">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:28px; min-height:380px;">
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:10px;">지역 선택</div>
+            ${leftHtml}
+          </div>
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:10px;">선택된 지역</div>
+            ${rightHtml}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btnModalCancel">닫기</button>
+        <button class="btn-primary" id="btnModalConfirm"
+          ${!canConfirm ? 'disabled' : ''}>${confirmLabel}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// --- 차량 모달 ---
+function html_vehicle_modal() {
+  const types = Object.keys(VEHICLE_SPECS);
+  const availTons = S.mv_type ? VEHICLE_SPECS[S.mv_type].tons : [];
+  const allSpecsForTons = S.mv_tons.length > 0
+    ? [...new Set(
+        VEHICLES.filter(v => v.차종 === S.mv_type && S.mv_tons.includes(v.톤수)).map(v => v.특성)
+      )]
+    : [];
+  const availSpecs = S.mv_type ? VEHICLE_SPECS[S.mv_type].specs : [];
+
+  let rightHtml = '';
+  if (S.mv_right.length === 0) {
+    rightHtml = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:40px 0;">선택된 차량이 없습니다.</div>`;
+  } else {
+    rightHtml = `
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <label style="font-size:12px; color:#6b7280; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="chkVehRightAll" style="accent-color:#1a56db;" /> 전체 선택 (${S.mv_right.length}개)
+        </label>
+        <button class="btn-danger" id="btnDelVehRight" style="padding:3px 10px; font-size:12px;">삭제</button>
+      </div>
+      <div style="max-height:340px; overflow-y:auto;">`;
+    for (let i = 0; i < S.mv_right.length; i++) {
+      const v = S.mv_right[i];
+      rightHtml += `<div class="check-item">
+        <input type="checkbox" class="veh-right-chk" data-i="${i}" />
+        <span>${vehLabel(v)}</span>
+      </div>`;
+    }
+    rightHtml += `</div>`;
+  }
+
+  const canSelect = S.mv_type && S.mv_tons.length > 0;
+
+  return `
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 style="font-size:17px; font-weight:700;">차량 추가</h2>
+        <button id="btnModalClose" style="background:none; border:none; font-size:22px; cursor:pointer; color:#9ca3af; line-height:1;">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:28px; min-height:380px;">
+          <!-- 왼쪽 -->
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:14px;">차량 조합 선택</div>
+
+            <div style="margin-bottom:14px;">
+              <label style="font-size:13px; font-weight:600; display:block; margin-bottom:5px;">
+                차종 <span style="color:#e53e3e;">*</span>
+              </label>
+              <select id="selVehType" class="sel">
+                <option value="">차종 선택</option>
+                ${types.map(t => `<option value="${t}" ${S.mv_type===t?'selected':''}>${t}</option>`).join('')}
+              </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <label style="font-size:13px; font-weight:600; display:block; margin-bottom:5px;">
+                차량 톤수 <span style="color:#e53e3e;">*</span>
+              </label>
+              <div style="border:1.5px solid #e5e7eb; border-radius:6px; padding:8px; max-height:160px; overflow-y:auto;
+                ${!S.mv_type ? 'opacity:0.35; pointer-events:none;' : ''}">
+                <div class="check-item">
+                  <input type="checkbox" id="chkTonAll" />
+                  <label for="chkTonAll" style="cursor:pointer; font-size:13px;">전체 선택</label>
+                </div>
+                ${availTons.map(t => `
+                  <div class="check-item">
+                    <input type="checkbox" class="chk-ton" value="${t}" ${S.mv_tons.includes(t)?'checked':''} />
+                    <label style="cursor:pointer;">${t}</label>
+                  </div>`).join('')}
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label style="font-size:13px; font-weight:600; display:block; margin-bottom:5px;">차량 특성</label>
+              <div style="border:1.5px solid #e5e7eb; border-radius:6px; padding:8px;
+                ${S.mv_tons.length === 0 ? 'opacity:0.35; pointer-events:none;' : ''}">
+                ${availSpecs.length === 0
+                  ? '<span style="font-size:12px; color:#9ca3af;">톤수를 먼저 선택하세요</span>'
+                  : availSpecs.map(s => `
+                    <div class="check-item">
+                      <input type="checkbox" class="chk-spec" value="${s}" ${S.mv_specs.includes(s)?'checked':''} />
+                      <label style="cursor:pointer;">${s === '' ? '(특성없음)' : s}</label>
+                    </div>`).join('')}
+              </div>
+            </div>
+
+            <button class="btn-primary" id="btnVehSelect"
+              style="width:100%; ${!canSelect ? 'opacity:0.4; cursor:not-allowed;' : ''}">
+              선택하기
+            </button>
+          </div>
+
+          <!-- 오른쪽 -->
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:10px;">선택된 차량</div>
+            ${rightHtml}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btnModalCancel">닫기</button>
+        <button class="btn-primary" id="btnModalConfirm"
+          ${S.mv_right.length === 0 ? 'disabled' : ''}>차량 추가하기</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===================== 이벤트 바인딩 =====================
+function bind() {
+  // 메인
+  $('btnSetOrigin')?.addEventListener('click', () => openRegionModal('origin'));
+  $('btnChangeOrigin')?.addEventListener('click', () => openRegionModal('origin'));
+  $('btnAddDest')?.addEventListener('click', () => openRegionModal('dest'));
+  $('btnAddVeh')?.addEventListener('click', () => {
