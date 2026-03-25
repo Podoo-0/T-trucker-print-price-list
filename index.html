@@ -1,433 +1,738 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>계약운임표 관리</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f5; margin: 0; }
-    .btn-primary   { background:#FFD600; color:#111; font-weight:700; border:none; cursor:pointer; border-radius:6px; padding:8px 18px; font-size:14px; }
-    .btn-primary:hover   { background:#f0c800; }
-    .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
-    .btn-secondary { background:#fff; color:#333; font-weight:600; border:1.5px solid #ddd; cursor:pointer; border-radius:6px; padding:8px 18px; font-size:14px; }
-    .btn-secondary:hover { background:#f5f5f5; }
-    .btn-danger    { background:#fff; color:#e53e3e; font-weight:600; border:1.5px solid #e53e3e; cursor:pointer; border-radius:6px; padding:8px 18px; font-size:14px; }
-    .btn-danger:hover    { background:#fff5f5; }
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200; display:flex; align-items:center; justify-content:center; }
-    .modal-box     { background:#fff; border-radius:12px; width:860px; max-width:97vw; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
-    .modal-header  { padding:20px 28px 16px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-    .modal-body    { flex:1; overflow:auto; padding:24px 28px; }
-    .modal-footer  { padding:16px 28px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; }
-    .region-btn    { width:100%; text-align:left; padding:7px 12px; border:none; background:none; cursor:pointer; border-radius:5px; color:#1a56db; font-size:14px; }
-    .region-btn:hover  { background:#eff6ff; }
-    .region-btn.on     { font-weight:700; }
-    .region-btn.on::after { content:' ✓'; }
-    .check-item    { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; font-size:13px; cursor:pointer; }
-    .check-item:hover { background:#f5f5f5; }
-    .check-item input { width:15px; height:15px; cursor:pointer; accent-color:#1a56db; flex-shrink:0; }
-    .breadcrumb-btn { background:none; border:none; cursor:pointer; color:#1a56db; font-size:13px; padding:0; }
-    .breadcrumb-btn:hover { text-decoration:underline; }
-    .grid-wrap     { overflow-x:auto; }
-    .grid-table    { border-collapse:collapse; font-size:13px; min-width:100%; }
-    .grid-table th { background:#f7f8fa; border:1px solid #e2e8f0; padding:8px 10px; white-space:nowrap; text-align:center; position:sticky; top:0; z-index:1; }
-    .grid-table td { border:1px solid #e2e8f0; padding:0; }
-    .addr-cell     { padding:7px 12px !important; background:#fafafa; white-space:nowrap; font-size:13px; }
-    .fare-input    { width:100%; border:none; background:transparent; text-align:right; font-size:13px; padding:6px 8px; outline:none; min-width:90px; }
-    .fare-input:focus { background:#fffbe6; }
-    .fare-input.filled { color:#c53030; font-weight:600; }
-    .section-box   { background:#fff; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.07); padding:20px 24px; margin-bottom:16px; }
-    select.sel     { border:1.5px solid #ddd; border-radius:6px; padding:7px 12px; font-size:13px; background:#fff; cursor:pointer; outline:none; width:100%; }
-    select.sel:focus { border-color:#1a56db; }
-    .th-veh        { position:relative; min-width:120px; }
-    .th-veh .del-btn { position:absolute; top:3px; right:4px; background:none; border:none; cursor:pointer; color:#bbb; font-size:11px; line-height:1; padding:0; }
-    .th-veh .del-btn:hover { color:#e53e3e; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>계약운임표 관리</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px; background: #f5f6f8; color: #222; margin: 0; }
+
+/* ── 헤더 ── */
+.app-header { background: #2563eb; color: #fff; padding: 0 20px; display: flex; align-items: stretch; gap: 10px; height: 46px; }
+.app-header .logo { display:flex; align-items:center; gap:8px; font-size: 14px; font-weight: 600; padding-right: 4px; }
+.nav-tab {
+  padding: 0 18px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px; font-weight: 500;
+  background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255,255,255,.7);
+  cursor: pointer; height: 100%; transition: all .15s; margin-top: 3px;
+}
+.nav-tab:hover { color: #fff; }
+.nav-tab.active { color: #fff; border-bottom-color: #fff; font-weight: 600; }
+
+/* ── 레이아웃 ── */
+.page { display: none; }
+.page.active { display: block; }
+.container { max-width: 1400px; margin: 0 auto; padding: 16px; }
+.top-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+
+/* ── 카드 ── */
+.card { background: #fff; border: 1px solid #dde1e7; border-radius: 6px; padding: 14px 16px; }
+.card-title { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px; display:flex; align-items:center; justify-content:space-between; }
+
+/* ── 버튼 ── */
+.btn { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; height: 32px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: #fff; color: #444; transition: all .15s; }
+.btn:hover { border-color: #999; }
+.btn-yellow { background: #FBBF24; color: #fff; border-color: #FBBF24; font-weight: 600; }
+.btn-yellow:hover { background: #F59E0B; border-color: #F59E0B; }
+.btn-yellow:disabled { background: #FDE68A; border-color: #FDE68A; cursor: not-allowed; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-success { background: #16a34a; color: #fff; border-color: #16a34a; }
+.btn-success:hover { background: #15803d; }
+.btn-link { background: none; border: none; color: #dc2626; font-size: 12px; cursor: pointer; padding: 0; height: auto; }
+.btn-link:hover { text-decoration: underline; }
+.btn-sm { padding: 3px 10px; font-size: 12px; height: 26px; }
+
+/* ── 태그 ── */
+.tag { display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 2px 8px; font-size: 12px; color: #1e40af; }
+.tag-rm { cursor: pointer; color: #93c5fd; font-size: 14px; line-height: 1; }
+.tag-rm:hover { color: #dc2626; }
+
+/* ── 폼 ── */
+.form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+label.form-label { font-size: 12px; color: #666; min-width: 48px; }
+select.form-select {
+  border: 1px solid #ccc; border-radius: 4px; padding: 5px 28px 5px 8px;
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23888' d='M5 7L0 2h10z'/%3E%3C/svg%3E") no-repeat right 8px center;
+  outline: none; height: 32px; cursor: pointer; appearance: none; width: 100%;
+}
+select.form-select:focus { border-color: #2563eb; }
+input.form-input {
+  border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px;
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px;
+  height: 32px; outline: none; width: 100%;
+}
+input.form-input:focus { border-color: #2563eb; }
+
+/* ── 커스텀 드롭다운 (체크박스) ── */
+.custom-dropdown { position: relative; width: 100%; }
+.dropdown-trigger {
+  width: 100%; height: 32px; border: 1px solid #ccc; border-radius: 4px;
+  background: #fff; padding: 0 28px 0 10px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  font-size: 13px; color: #222; cursor: pointer; text-align: left; display: flex; align-items: center;
+  position: relative; user-select: none;
+}
+.dropdown-trigger.open { border-color: #2563eb; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.dropdown-trigger .arrow { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #888; transition: transform .15s; }
+.dropdown-trigger.open .arrow { transform: translateY(-50%) rotate(180deg); }
+.dropdown-trigger .placeholder { color: #999; }
+.dropdown-panel { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: #fff; border: 1px solid #2563eb; border-top: none; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.dropdown-panel.open { display: block; }
+.dropdown-all-row { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; background: #f8f9fb; z-index: 1; }
+.dp-chk-label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; }
+.dp-chk-label:hover { background: #f5f7ff; }
+.dp-chk-label input[type=checkbox] { accent-color: #2563eb; width: 14px; height: 14px; cursor: pointer; }
+
+/* ── 모달 공통 ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: none; align-items: flex-start; justify-content: center; padding-top: 60px; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: #fff; border-radius: 8px; width: min(740px, 96vw); max-height: 80vh; box-shadow: 0 8px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; }
+.modal-head { padding: 18px 22px 14px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.modal-head h2 { font-size: 16px; font-weight: 600; margin: 0; }
+.modal-close-btn { cursor: pointer; color: #aaa; font-size: 20px; line-height: 1; border: none; background: none; }
+.modal-close-btn:hover { color: #444; }
+.modal-body { display: flex; flex: 1; overflow: hidden; }
+.modal-left { width: 55%; border-right: 1px solid #eee; display: flex; flex-direction: column; overflow: hidden; }
+.modal-right { width: 45%; display: flex; flex-direction: column; overflow: hidden; }
+.modal-section-title { font-size: 12px; font-weight: 600; color: #888; padding: 10px 16px 6px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+.modal-foot { padding: 12px 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+
+.tab-group { display: flex; border-bottom: 1px solid #eee; flex-shrink: 0; }
+.tab-btn { flex: 1; padding: 9px 0; font-size: 13px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; border: none; border-bottom: 2px solid transparent; background: none; cursor: pointer; color: #888; margin-bottom: -1px; transition: all .15s; }
+.tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+.tab-btn:hover:not(.active) { color: #444; }
+
+.sido-grid { display: grid; grid-template-columns: 1fr 1fr; overflow-y: auto; flex: 1; padding: 4px 0; }
+.sido-item { padding: 9px 16px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: space-between; transition: background .12s; }
+.sido-item:hover { background: #f0f4ff; }
+.sido-item.active { color: #2563eb; font-weight: 600; }
+.sido-item .check-icon { color: #2563eb; font-size: 14px; }
+
+.breadcrumb { padding: 8px 16px; font-size: 12px; color: #888; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.breadcrumb .bc-link { color: #2563eb; cursor: pointer; }
+.breadcrumb .bc-link:hover { text-decoration: underline; }
+
+.sigungu-grid { display: grid; grid-template-columns: 1fr 1fr; overflow-y: auto; flex: 1; padding: 4px 8px; }
+.sigungu-all-row { padding: 8px 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+.chk-label { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.chk-label:hover { background: #f5f7ff; }
+.chk-label input[type=checkbox] { accent-color: #2563eb; width: 15px; height: 15px; cursor: pointer; }
+.chk-label.checked { color: #2563eb; font-weight: 500; }
+
+.selected-header { padding: 8px 14px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.selected-header .count { color: #2563eb; font-size: 12px; font-weight: 600; }
+.selected-list { overflow-y: auto; flex: 1; padding: 4px; }
+.selected-item { display: flex; align-items: center; padding: 7px 10px; border-radius: 4px; gap: 6px; }
+.selected-item:hover { background: #fef2f2; }
+.selected-item input[type=checkbox] { accent-color: #2563eb; width: 15px; height: 15px; cursor: pointer; }
+.selected-item .item-label { flex: 1; font-size: 13px; }
+.empty-state-right { text-align: center; padding: 40px 16px; color: #bbb; font-size: 13px; }
+.empty-icon { font-size: 28px; margin-bottom: 6px; }
+
+.select-btn-area { padding: 12px 16px; border-top: 1px solid #eee; flex-shrink: 0; }
+.btn-select { width: 100%; height: 38px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; cursor: pointer; color: #555; }
+.btn-select:hover:not(:disabled) { background: #e0e0e0; }
+.btn-select:disabled { cursor: not-allowed; color: #bbb; }
+
+.vehicle-form { padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
+.vf-label { font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px; }
+.vf-label .req { color: #ef4444; }
+
+/* ── 운임 그리드 ── */
+.table-wrap { overflow-x: auto; border: 1px solid #dde1e7; border-radius: 6px; }
+.fare-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.fare-table th { background: #f8f9fb; padding: 8px 12px; text-align: center; font-weight: 600; color: #444; white-space: nowrap; border-bottom: 1px solid #dde1e7; border-right: 1px solid #eee; font-size: 12px; }
+.fare-table th.left { text-align: left; min-width: 110px; }
+.fare-table td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; border-right: 1px solid #f0f0f0; text-align: center; }
+.fare-table td.left { text-align: left; padding-left: 12px; color: #555; white-space: nowrap; }
+.fare-table tr:hover td { background: #f8faff; }
+.fare-input { width: 90px; border: 1px solid transparent; border-radius: 4px; font-size: 13px; padding: 3px 6px; text-align: right; outline: none; background: transparent; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; }
+.fare-input:hover { border-color: #ccc; background: #fff; }
+.fare-input:focus { border-color: #2563eb; background: #fff; }
+.empty-grid { text-align: center; padding: 40px; color: #aaa; font-size: 13px; }
+
+/* ── 코드 맵핑 테이블 ── */
+.mapping-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.mapping-table th { background: #f8f9fb; padding: 8px 12px; text-align: left; font-weight: 600; color: #444; border-bottom: 2px solid #dde1e7; border-right: 1px solid #eee; font-size: 12px; white-space: nowrap; }
+.mapping-table th.center { text-align: center; }
+.mapping-table td { padding: 5px 10px; border-bottom: 1px solid #f0f0f0; border-right: 1px solid #f5f5f5; vertical-align: middle; }
+.mapping-table td.center { text-align: center; }
+.mapping-table tr:hover td { background: #f8faff; }
+.code-input { width: 80px; border: 1px solid transparent; border-radius: 4px; font-size: 13px; padding: 3px 6px; text-align: center; outline: none; background: transparent; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; }
+.code-input:hover { border-color: #ccc; background: #fff; }
+.code-input:focus { border-color: #2563eb; background: #fff; }
+.code-input.has-value { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; font-weight: 600; }
+
+/* 필터 바 */
+.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-bar select { border: 1px solid #ccc; border-radius: 4px; padding: 5px 28px 5px 8px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px; height: 32px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23888' d='M5 7L0 2h10z'/%3E%3C/svg%3E") no-repeat right 8px center; outline: none; cursor: pointer; appearance: none; }
+.filter-bar select:focus { border-color: #2563eb; }
+.filter-bar input { border: 1px solid #ccc; border-radius: 4px; padding: 5px 8px; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 13px; height: 32px; outline: none; width: 140px; }
+.filter-bar input:focus { border-color: #2563eb; }
+.mapped-count { font-size: 12px; color: #888; margin-left: auto; }
+.mapped-count span { color: #2563eb; font-weight: 600; }
+
+/* 배지 */
+.badge { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:600; }
+.badge-mapped { background:#dcfce7; color:#166534; }
+.badge-empty { background:#f3f4f6; color:#9ca3af; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+</style>
 </head>
 <body>
-<div id="app"></div>
+
+<!-- ── 헤더 ── -->
+<header class="app-header">
+  <div class="logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h3l4 4v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    T-TRUCKER
+  </div>
+  <nav style="display:flex;gap:0;align-items:stretch;height:100%">
+    <button class="nav-tab active" id="nav-fare" onclick="switchPage('fare')">계약운임표 관리</button>
+    <button class="nav-tab" id="nav-code" onclick="switchPage('code')">차량 코드 맵핑</button>
+  </nav>
+</header>
+
+<!-- ════════════════════════════════════
+     PAGE 1: 계약운임표 관리
+════════════════════════════════════ -->
+<div class="page active" id="page-fare">
+<div class="container">
+  <div class="top-row">
+    <!-- 상차지 -->
+    <div class="card" style="flex:0 0 auto; min-width:240px">
+      <div class="card-title">상차지</div>
+      <div class="form-row">
+        <label class="form-label">시/도</label>
+        <select class="form-select" id="pickup-sido" style="width:115px" onchange="onPickupSido()"><option value="">선택</option></select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">시/군/구</label>
+        <select class="form-select" id="pickup-sigungu" style="width:130px" onchange="onPickupSigungu()"><option value="">선택</option></select>
+      </div>
+      <div id="pickup-result" style="display:none; margin-top:6px">
+        <span style="display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:4px 10px;font-size:13px;color:#1d4ed8;font-weight:500">
+          <span id="pickup-text"></span>
+        </span>
+      </div>
+    </div>
+    <!-- 하차지 -->
+    <div class="card" style="flex:1; min-width:260px">
+      <div class="card-title">하차지</div>
+      <div class="form-row">
+        <button class="btn btn-primary" onclick="openDropoffModal()">+ 하차지 추가</button>
+      </div>
+      <div id="dropoff-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
+    <!-- 차량 -->
+    <div class="card" style="flex:1; min-width:260px">
+      <div class="card-title">차량</div>
+      <div class="form-row">
+        <button class="btn btn-primary" onclick="openVehicleModal()">+ 차량 추가</button>
+      </div>
+      <div id="vehicle-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
+  </div>
+
+  <!-- 운임표 -->
+  <div class="card">
+    <div class="card-title">
+      운임표
+      <button class="btn btn-success btn-sm" onclick="downloadExcel()">↓ 엑셀 다운로드</button>
+    </div>
+    <div id="grid-area">
+      <div class="empty-grid">상차지 · 하차지 · 차량을 선택하면 운임표가 생성됩니다.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 2: 차량 코드 맵핑
+════════════════════════════════════ -->
+<div class="page" id="page-code">
+<div class="container">
+  <div class="card">
+    <div class="card-title">
+      차량 코드 맵핑
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="clearAllCodes()" style="color:#dc2626;border-color:#fca5a5">전체 초기화</button>
+        <button class="btn btn-success btn-sm" onclick="saveCodesAlert()">저장</button>
+      </div>
+    </div>
+
+    <!-- 필터 -->
+    <div class="filter-bar">
+      <select id="filter-type" onchange="renderMappingTable()">
+        <option value="">전체 차종</option>
+      </select>
+      <select id="filter-spec" onchange="renderMappingTable()">
+        <option value="">전체 특성</option>
+        <option value="상온">상온</option>
+        <option value="냉장">냉장</option>
+        <option value="냉동(냉장포함)">냉동(냉장포함)</option>
+        <option value="리프트">리프트</option>
+      </select>
+      <select id="filter-mapped" onchange="renderMappingTable()">
+        <option value="">전체</option>
+        <option value="mapped">코드 입력됨</option>
+        <option value="empty">미입력</option>
+      </select>
+      <input type="text" id="filter-search" placeholder="단위명 검색..." oninput="renderMappingTable()" style="border:1px solid #ccc;border-radius:4px;padding:4px 8px;height:32px;outline:none;width:160px">
+      <span class="mapped-count" id="mapped-count-label"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="mapping-table">
+        <thead>
+          <tr>
+            <th style="width:40px" class="center">#</th>
+            <th style="min-width:180px">단위명 (TMS 표시명)</th>
+            <th style="width:80px">차종</th>
+            <th style="width:80px">톤수</th>
+            <th style="width:100px">특성</th>
+            <th style="width:100px" class="center">TMS 코드</th>
+          </tr>
+        </thead>
+        <tbody id="mapping-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:#aaa">
+      * 코드 입력 후 계약운임표의 차량 헤더에 [코드번호] 형태로 자동 반영됩니다.
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 하차지 모달 ══ -->
+<div class="modal-overlay" id="dropoff-modal">
+  <div class="modal-box" style="height:580px">
+    <div class="modal-head"><h2>하차지 추가</h2><button class="modal-close-btn" onclick="closeDropoffModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-left">
+        <div class="modal-section-title">하차지 선택</div>
+        <div class="tab-group">
+          <button class="tab-btn active" id="dtab-sido" onclick="setDropoffTab('sido')">시/도 단위</button>
+          <button class="tab-btn" id="dtab-sigungu" onclick="setDropoffTab('sigungu')">시/군/구 단위</button>
+          <button class="tab-btn" id="dtab-eupmyeong" onclick="setDropoffTab('eupmyeong')">읍/면/동 단위</button>
+        </div>
+        <div class="breadcrumb" id="d-breadcrumb" style="display:none"></div>
+        <div id="d-sido-list" class="sido-grid"></div>
+        <div id="d-sigungu-all-row" class="sigungu-all-row" style="display:none">
+          <label class="chk-label"><input type="checkbox" id="d-sigungu-all-chk" onchange="toggleAllSigungu(this.checked)"> 전체 선택</label>
+        </div>
+        <div id="d-sigungu-list" class="sigungu-grid" style="display:none"></div>
+        <div class="select-btn-area"><button class="btn-select" id="d-select-btn" onclick="addToDropoffSelected()" disabled>선택하기</button></div>
+      </div>
+      <div class="modal-right">
+        <div class="modal-section-title">선택된 하차지</div>
+        <div class="selected-header">
+          <label class="chk-label" style="padding:0;gap:6px"><input type="checkbox" id="d-sel-all-chk" onchange="toggleSelAllDropoff(this.checked)"> 전체 선택</label>
+          <span class="count" id="d-sel-count"></span>
+          <button class="btn-link" style="margin-left:auto" onclick="deleteCheckedDropoff()">삭제</button>
+        </div>
+        <div class="selected-list" id="d-selected-list">
+          <div class="empty-state-right"><div class="empty-icon">🔍</div>선택된 하차지가 없습니다.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeDropoffModal()">닫기</button>
+      <button class="btn btn-yellow" onclick="confirmDropoff()">하차지 추가하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 차량 모달 ══ -->
+<div class="modal-overlay" id="vehicle-modal">
+  <div class="modal-box" style="height:540px">
+    <div class="modal-head"><h2>차량 추가</h2><button class="modal-close-btn" onclick="closeVehicleModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-left" style="overflow:visible;position:relative">
+        <div class="modal-section-title">차량 조합 선택</div>
+        <div class="vehicle-form" style="overflow:visible">
+          <div>
+            <div class="vf-label">차종 <span class="req">*</span></div>
+            <select class="form-select" id="v-type" onchange="onVehicleTypeChange()"><option value="">선택</option></select>
+          </div>
+          <div style="position:relative">
+            <div class="vf-label">차량 톤수 <span class="req">*</span></div>
+            <div class="custom-dropdown" id="ton-dropdown">
+              <div class="dropdown-trigger" id="ton-trigger" onclick="toggleDropdown('ton')">
+                <span id="ton-label" class="placeholder">차량 톤수 선택</span><span class="arrow"></span>
+              </div>
+              <div class="dropdown-panel" id="ton-panel">
+                <div class="dropdown-all-row"><label class="dp-chk-label"><input type="checkbox" id="ton-all-chk" onchange="toggleAllTons(this.checked)"> 전체 선택</label></div>
+                <div id="ton-list"></div>
+              </div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <div class="vf-label">차량 특성</div>
+            <div class="custom-dropdown" id="spec-dropdown">
+              <div class="dropdown-trigger" id="spec-trigger" onclick="toggleDropdown('spec')">
+                <span id="spec-label" class="placeholder">차량 특성 선택</span><span class="arrow"></span>
+              </div>
+              <div class="dropdown-panel" id="spec-panel"><div id="spec-list"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="select-btn-area"><button class="btn-select" id="v-select-btn" onclick="addToVehicleSelected()" disabled>선택하기</button></div>
+      </div>
+      <div class="modal-right">
+        <div class="modal-section-title">선택된 차량</div>
+        <div class="selected-header">
+          <label class="chk-label" style="padding:0;gap:6px"><input type="checkbox" id="v-sel-all-chk" onchange="toggleSelAllVehicle(this.checked)"> 전체 선택</label>
+          <span class="count" id="v-sel-count"></span>
+          <button class="btn-link" style="margin-left:auto" onclick="deleteCheckedVehicle()">삭제</button>
+        </div>
+        <div class="selected-list" id="v-selected-list">
+          <div class="empty-state-right"><div class="empty-icon">🚛</div>선택된 차량이 없습니다.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeVehicleModal()">닫기</button>
+      <button class="btn btn-yellow" onclick="confirmVehicle()">차량 추가하기</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ===================== 지역 데이터 =====================
-const REGION = {"서울시":["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],"부산시":["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],"대구시":["군위군","남구","달서구","달성군","동구","북구","서구","수성구","중구"],"인천시":["강화군","계양구","남동구","동구","미추홀구","부평구","서구","연수구","옹진군","중구"],"광주시":["광산구","남구","동구","북구","서구"],"대전시":["대덕구","동구","서구","유성구","중구"],"울산시":["남구","동구","북구","울주군","중구"],"경기도":["가평군","고양 덕양구","고양 일산동구","고양 일산서구","과천시","광명시","광주시","구리시","군포시","김포시","남양주시","동두천시","부천시","성남 분당구","성남 수정구","성남 중원구","수원 권선구","수원 영통구","수원 장안구","수원 팔달구","시흥시","안산 단원구","안산 상록구","안성시","안양 동안구","안양 만안구","양주시","양평군","여주시","연천군","오산시","용인 기흥구","용인 수지구","용인 처인구","의왕시","의정부시","이천시","파주시","평택시","포천시","하남시","부천 소사구","부천 오정구","부천 원미구","화성 동탄구","화성 만세구","화성 병점구","화성 효행구"],"강원도":["강릉시","고성군","동해시","삼척시","속초시","양구군","양양군","영월군","원주시","인제군","정선군","철원군","춘천시","태백시","평창군","홍천군","화천군","횡성군"],"충청북도":["괴산군","단양군","보은군","영동군","옥천군","음성군","제천시","증평군","진천군","청주 상당구","청주 서원구","청주 청원구","청주 흥덕구","충주시"],"충청남도":["계룡시","공주시","금산군","논산시","당진시","보령시","부여군","서산시","서천군","아산시","예산군","천안 동남구","천안 서북구","청양군","태안군","홍성군"],"전라북도":["고창군","군산시","김제시","남원시","무주군","부안군","순창군","완주군","익산시","임실군","장수군","전주 덕진구","전주 완산구","정읍시","진안군"],"전라남도":["강진군","고흥군","곡성군","광양시","구례군","나주시","담양군","목포시","무안군","보성군","순천시","신안군","여수시","영광군","영암군","완도군","장성군","장흥군","진도군","함평군","해남군","화순군"],"경상북도":["경산시","경주시","고령군","구미시","김천시","문경시","봉화군","상주시","성주군","안동시","영덕군","영양군","영주시","영천시","예천군","울릉군","울진군","의성군","청도군","청송군","칠곡군","포항 남구","포항 북구"],"경상남도":["거제시","거창군","고성군","김해시","남해군","밀양시","사천시","산청군","양산시","의령군","진주시","창녕군","창원 마산합포구","창원 마산회원구","창원 성산구","창원 의창구","창원 진해구","통영시","하동군","함안군","함양군","합천군"],"제주도":["서귀포시","제주시"]};
+/* ════════════════════════════════════
+   데이터
+════════════════════════════════════ */
+const REGION = {
+  "서울시":["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
+  "부산시":["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],
+  "대구시":["군위군","남구","달서구","달성군","동구","북구","서구","수성구","중구"],
+  "인천시":["강화군","계양구","남동구","동구","미추홀구","부평구","서구","연수구","옹진군","중구"],
+  "광주시":["광산구","남구","동구","북구","서구"],
+  "대전시":["대덕구","동구","서구","유성구","중구"],
+  "울산시":["남구","동구","북구","울주군","중구"],
+  "경기도":["가평군","고양 덕양구","고양 일산동구","고양 일산서구","과천시","광명시","광주시","구리시","군포시","김포시","남양주시","동두천시","부천시","성남 분당구","성남 수정구","성남 중원구","수원 권선구","수원 영통구","수원 장안구","수원 팔달구","시흥시","안산 단원구","안산 상록구","안성시","안양 동안구","안양 만안구","양주시","양평군","여주시","연천군","오산시","용인 기흥구","용인 수지구","용인 처인구","의왕시","의정부시","이천시","파주시","평택시","포천시","하남시","부천 소사구","부천 오정구","부천 원미구","화성 동탄구","화성 만세구","화성 병점구","화성 효행구"],
+  "강원도":["강릉시","고성군","동해시","삼척시","속초시","양구군","양양군","영월군","원주시","인제군","정선군","철원군","춘천시","태백시","평창군","홍천군","화천군","횡성군"],
+  "충청북도":["괴산군","단양군","보은군","영동군","옥천군","음성군","제천시","증평군","진천군","청주 상당구","청주 서원구","청주 청원구","청주 흥덕구","충주시"],
+  "충청남도":["계룡시","공주시","금산군","논산시","당진시","보령시","부여군","서산시","서천군","아산시","예산군","천안 동남구","천안 서북구","청양군","태안군","홍성군"],
+  "전라북도":["고창군","군산시","김제시","남원시","무주군","부안군","순창군","완주군","익산시","임실군","장수군","전주 덕진구","전주 완산구","정읍시","진안군"],
+  "전라남도":["강진군","고흥군","곡성군","광양시","구례군","나주시","담양군","목포시","무안군","보성군","순천시","신안군","여수시","영광군","영암군","완도군","장성군","장흥군","진도군","함평군","해남군","화순군"],
+  "경상북도":["경산시","경주시","고령군","구미시","김천시","문경시","봉화군","상주시","성주군","안동시","영덕군","영양군","영주시","영천시","예천군","울릉군","울진군","의성군","청도군","청송군","칠곡군","포항 남구","포항 북구"],
+  "경상남도":["거제시","거창군","고성군","김해시","남해군","밀양시","사천시","산청군","양산시","의령군","진주시","창녕군","창원 마산합포구","창원 마산회원구","창원 성산구","창원 의창구","창원 진해구","통영시","하동군","함안군","함양군","합천군"],
+  "제주도":["서귀포시","제주시"]
+};
 
-const SIDO_FULL = {"서울시":"서울특별시","부산시":"부산광역시","대구시":"대구광역시","인천시":"인천광역시","광주시":"광주광역시","대전시":"대전광역시","울산시":"울산광역시","경기도":"경기도","강원도":"강원특별자치도","충청북도":"충청북도","충청남도":"충청남도","전라북도":"전라북도","전라남도":"전라남도","경상북도":"경상북도","경상남도":"경상남도","제주도":"제주특별자치도"};
-
-function fullAddr(sido, sigungu) {
-  return `${SIDO_FULL[sido] || sido} ${sigungu}`;
-}
-
-// ===================== 차량 데이터 =====================
-// 특성: "" = 특성없음(빈칸), 나머지는 명시
 const MID_TONS = ["1톤","1.4톤","2.5톤","3.5톤","5톤","5톤플러스","5톤축","8톤","9.5톤","11톤","14톤","18톤","22톤","25톤"];
 const VEHICLE_SPECS = {
-  "다마스":   { tons:["0.3톤"],                        specs:[""] },
-  "라보":     { tons:["0.5톤"],                        specs:["","리프트"] },
-  "카고/윙":  { tons:MID_TONS,                         specs:["","리프트"] },
-  "카고":     { tons:MID_TONS,                         specs:["","리프트"] },
-  "윙바디":   { tons:MID_TONS,                         specs:["","냉장","냉동(냉장포함)","리프트"] },
-  "탑":       { tons:MID_TONS,                         specs:["","냉장","냉동(냉장포함)","리프트"] },
-  "방통차":   { tons:["18톤","22톤","25톤"],            specs:[""] },
-  "트레일러": { tons:["18톤","22톤","25톤","20ft","40ft"], specs:["","냉장","냉동(냉장포함)","리프트"] },
+  "다마스":   { tons:["0.3톤"],                           specs:["리프트는 없음"] },
+  "라보":     { tons:["0.5톤"],                           specs:["리프트"] },
+  "카고/윙":  { tons:MID_TONS,                            specs:["리프트"] },
+  "카고":     { tons:MID_TONS,                            specs:["리프트"] },
+  "윙바디":   { tons:MID_TONS,                            specs:["냉장","냉동(냉장포함)","리프트"] },
+  "탑":       { tons:MID_TONS,                            specs:["냉장","냉동(냉장포함)","리프트"] },
+  "방통차":   { tons:["18톤","22톤","25톤"],               specs:[] },
+  "트레일러": { tons:["18톤","22톤","25톤","20ft","40ft"], specs:["냉장","냉동(냉장포함)","리프트"] },
 };
 
-// 전체 차량 목록 생성
-const VEHICLES = [];
-let _vid = 1;
-for (const [type, {tons, specs}] of Object.entries(VEHICLE_SPECS)) {
-  for (const ton of tons) {
-    for (const spec of specs) {
-      VEHICLES.push({ id: _vid++, 차종: type, 톤수: ton, 특성: spec, tmsCode: "" });
-    }
+/* TMS 차량 단위 마스터 데이터 (194개) */
+const TMS_UNITS = [{"unit":"0.3톤 다마스","type":"다마스","ton":"0.3톤","spec":"상온"},{"unit":"0.5톤 라보","type":"라보","ton":"0.5톤","spec":"상온"},{"unit":"0.5톤 라보 리프트","type":"라보","ton":"0.5톤","spec":"리프트"},{"unit":"1톤 카고/윙","type":"카고/윙","ton":"1톤","spec":"상온"},{"unit":"1톤 카고/윙 리프트","type":"카고/윙","ton":"1톤","spec":"리프트"},{"unit":"1.4톤 카고/윙","type":"카고/윙","ton":"1.4톤","spec":"상온"},{"unit":"1.4톤 카고/윙 리프트","type":"카고/윙","ton":"1.4톤","spec":"리프트"},{"unit":"2.5톤 카고/윙","type":"카고/윙","ton":"2.5톤","spec":"상온"},{"unit":"2.5톤 카고/윙 리프트","type":"카고/윙","ton":"2.5톤","spec":"리프트"},{"unit":"3.5톤 카고/윙","type":"카고/윙","ton":"3.5톤","spec":"상온"},{"unit":"3.5톤 카고/윙 리프트","type":"카고/윙","ton":"3.5톤","spec":"리프트"},{"unit":"5톤 카고/윙","type":"카고/윙","ton":"5톤","spec":"상온"},{"unit":"5톤 카고/윙 리프트","type":"카고/윙","ton":"5톤","spec":"리프트"},{"unit":"5톤플러스 카고/윙","type":"카고/윙","ton":"5톤플러스","spec":"상온"},{"unit":"5톤플러스 카고/윙 리프트","type":"카고/윙","ton":"5톤플러스","spec":"리프트"},{"unit":"5톤축 카고/윙","type":"카고/윙","ton":"5톤축","spec":"상온"},{"unit":"5톤축 카고/윙 리프트","type":"카고/윙","ton":"5톤축","spec":"리프트"},{"unit":"8톤 카고/윙","type":"카고/윙","ton":"8톤","spec":"상온"},{"unit":"8톤 카고/윙 리프트","type":"카고/윙","ton":"8톤","spec":"리프트"},{"unit":"9.5톤 카고/윙","type":"카고/윙","ton":"9.5톤","spec":"상온"},{"unit":"9.5톤 카고/윙 리프트","type":"카고/윙","ton":"9.5톤","spec":"리프트"},{"unit":"11톤 카고/윙","type":"카고/윙","ton":"11톤","spec":"상온"},{"unit":"11톤 카고/윙 리프트","type":"카고/윙","ton":"11톤","spec":"리프트"},{"unit":"14톤 카고/윙","type":"카고/윙","ton":"14톤","spec":"상온"},{"unit":"14톤 카고/윙 리프트","type":"카고/윙","ton":"14톤","spec":"리프트"},{"unit":"18톤 카고/윙","type":"카고/윙","ton":"18톤","spec":"상온"},{"unit":"18톤 카고/윙 리프트","type":"카고/윙","ton":"18톤","spec":"리프트"},{"unit":"22톤 카고/윙","type":"카고/윙","ton":"22톤","spec":"상온"},{"unit":"22톤 카고/윙 리프트","type":"카고/윙","ton":"22톤","spec":"리프트"},{"unit":"25톤 카고/윙","type":"카고/윙","ton":"25톤","spec":"상온"},{"unit":"25톤 카고/윙 리프트","type":"카고/윙","ton":"25톤","spec":"리프트"},{"unit":"1톤 카고","type":"카고","ton":"1톤","spec":"상온"},{"unit":"1톤 카고 리프트","type":"카고","ton":"1톤","spec":"리프트"},{"unit":"1.4톤 카고","type":"카고","ton":"1.4톤","spec":"상온"},{"unit":"1.4톤 카고 리프트","type":"카고","ton":"1.4톤","spec":"리프트"},{"unit":"2.5톤 카고","type":"카고","ton":"2.5톤","spec":"상온"},{"unit":"2.5톤 카고 리프트","type":"카고","ton":"2.5톤","spec":"리프트"},{"unit":"3.5톤 카고","type":"카고","ton":"3.5톤","spec":"상온"},{"unit":"3.5톤 카고 리프트","type":"카고","ton":"3.5톤","spec":"리프트"},{"unit":"5톤 카고","type":"카고","ton":"5톤","spec":"상온"},{"unit":"5톤 카고 리프트","type":"카고","ton":"5톤","spec":"리프트"},{"unit":"5톤플러스 카고","type":"카고","ton":"5톤플러스","spec":"상온"},{"unit":"5톤플러스 카고 리프트","type":"카고","ton":"5톤플러스","spec":"리프트"},{"unit":"5톤축 카고","type":"카고","ton":"5톤축","spec":"상온"},{"unit":"5톤축 카고 리프트","type":"카고","ton":"5톤축","spec":"리프트"},{"unit":"8톤 카고","type":"카고","ton":"8톤","spec":"상온"},{"unit":"8톤 카고 리프트","type":"카고","ton":"8톤","spec":"리프트"},{"unit":"9.5톤 카고","type":"카고","ton":"9.5톤","spec":"상온"},{"unit":"9.5톤 카고 리프트","type":"카고","ton":"9.5톤","spec":"리프트"},{"unit":"11톤 카고","type":"카고","ton":"11톤","spec":"상온"},{"unit":"11톤 카고 리프트","type":"카고","ton":"11톤","spec":"리프트"},{"unit":"14톤 카고","type":"카고","ton":"14톤","spec":"상온"},{"unit":"14톤 카고 리프트","type":"카고","ton":"14톤","spec":"리프트"},{"unit":"18톤 카고","type":"카고","ton":"18톤","spec":"상온"},{"unit":"18톤 카고 리프트","type":"카고","ton":"18톤","spec":"리프트"},{"unit":"22톤 카고","type":"카고","ton":"22톤","spec":"상온"},{"unit":"22톤 카고 리프트","type":"카고","ton":"22톤","spec":"리프트"},{"unit":"25톤 카고","type":"카고","ton":"25톤","spec":"상온"},{"unit":"25톤 카고 리프트","type":"카고","ton":"25톤","spec":"리프트"},{"unit":"1톤 윙바디","type":"윙바디","ton":"1톤","spec":"상온"},{"unit":"1톤 윙바디 냉장","type":"윙바디","ton":"1톤","spec":"냉장"},{"unit":"1톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"1톤","spec":"냉동(냉장포함)"},{"unit":"1톤 윙바디 리프트","type":"윙바디","ton":"1톤","spec":"리프트"},{"unit":"1.4톤 윙바디","type":"윙바디","ton":"1.4톤","spec":"상온"},{"unit":"1.4톤 윙바디 냉장","type":"윙바디","ton":"1.4톤","spec":"냉장"},{"unit":"1.4톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"1.4톤","spec":"냉동(냉장포함)"},{"unit":"1.4톤 윙바디 리프트","type":"윙바디","ton":"1.4톤","spec":"리프트"},{"unit":"2.5톤 윙바디","type":"윙바디","ton":"2.5톤","spec":"상온"},{"unit":"2.5톤 윙바디 냉장","type":"윙바디","ton":"2.5톤","spec":"냉장"},{"unit":"2.5톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"2.5톤","spec":"냉동(냉장포함)"},{"unit":"2.5톤 윙바디 리프트","type":"윙바디","ton":"2.5톤","spec":"리프트"},{"unit":"3.5톤 윙바디","type":"윙바디","ton":"3.5톤","spec":"상온"},{"unit":"3.5톤 윙바디 냉장","type":"윙바디","ton":"3.5톤","spec":"냉장"},{"unit":"3.5톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"3.5톤","spec":"냉동(냉장포함)"},{"unit":"3.5톤 윙바디 리프트","type":"윙바디","ton":"3.5톤","spec":"리프트"},{"unit":"5톤 윙바디","type":"윙바디","ton":"5톤","spec":"상온"},{"unit":"5톤 윙바디 냉장","type":"윙바디","ton":"5톤","spec":"냉장"},{"unit":"5톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"5톤","spec":"냉동(냉장포함)"},{"unit":"5톤 윙바디 리프트","type":"윙바디","ton":"5톤","spec":"리프트"},{"unit":"5톤플러스 윙바디","type":"윙바디","ton":"5톤플러스","spec":"상온"},{"unit":"5톤플러스 윙바디 냉장","type":"윙바디","ton":"5톤플러스","spec":"냉장"},{"unit":"5톤플러스 윙바디 냉동(냉장포함)","type":"윙바디","ton":"5톤플러스","spec":"냉동(냉장포함)"},{"unit":"5톤플러스 윙바디 리프트","type":"윙바디","ton":"5톤플러스","spec":"리프트"},{"unit":"5톤축 윙바디","type":"윙바디","ton":"5톤축","spec":"상온"},{"unit":"5톤축 윙바디 냉장","type":"윙바디","ton":"5톤축","spec":"냉장"},{"unit":"5톤축 윙바디 냉동(냉장포함)","type":"윙바디","ton":"5톤축","spec":"냉동(냉장포함)"},{"unit":"5톤축 윙바디 리프트","type":"윙바디","ton":"5톤축","spec":"리프트"},{"unit":"8톤 윙바디","type":"윙바디","ton":"8톤","spec":"상온"},{"unit":"8톤 윙바디 냉장","type":"윙바디","ton":"8톤","spec":"냉장"},{"unit":"8톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"8톤","spec":"냉동(냉장포함)"},{"unit":"8톤 윙바디 리프트","type":"윙바디","ton":"8톤","spec":"리프트"},{"unit":"9.5톤 윙바디","type":"윙바디","ton":"9.5톤","spec":"상온"},{"unit":"9.5톤 윙바디 냉장","type":"윙바디","ton":"9.5톤","spec":"냉장"},{"unit":"9.5톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"9.5톤","spec":"냉동(냉장포함)"},{"unit":"9.5톤 윙바디 리프트","type":"윙바디","ton":"9.5톤","spec":"리프트"},{"unit":"11톤 윙바디","type":"윙바디","ton":"11톤","spec":"상온"},{"unit":"11톤 윙바디 냉장","type":"윙바디","ton":"11톤","spec":"냉장"},{"unit":"11톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"11톤","spec":"냉동(냉장포함)"},{"unit":"11톤 윙바디 리프트","type":"윙바디","ton":"11톤","spec":"리프트"},{"unit":"14톤 윙바디","type":"윙바디","ton":"14톤","spec":"상온"},{"unit":"14톤 윙바디 냉장","type":"윙바디","ton":"14톤","spec":"냉장"},{"unit":"14톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"14톤","spec":"냉동(냉장포함)"},{"unit":"14톤 윙바디 리프트","type":"윙바디","ton":"14톤","spec":"리프트"},{"unit":"18톤 윙바디","type":"윙바디","ton":"18톤","spec":"상온"},{"unit":"18톤 윙바디 냉장","type":"윙바디","ton":"18톤","spec":"냉장"},{"unit":"18톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"18톤","spec":"냉동(냉장포함)"},{"unit":"18톤 윙바디 리프트","type":"윙바디","ton":"18톤","spec":"리프트"},{"unit":"22톤 윙바디","type":"윙바디","ton":"22톤","spec":"상온"},{"unit":"22톤 윙바디 냉장","type":"윙바디","ton":"22톤","spec":"냉장"},{"unit":"22톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"22톤","spec":"냉동(냉장포함)"},{"unit":"22톤 윙바디 리프트","type":"윙바디","ton":"22톤","spec":"리프트"},{"unit":"25톤 윙바디","type":"윙바디","ton":"25톤","spec":"상온"},{"unit":"25톤 윙바디 냉장","type":"윙바디","ton":"25톤","spec":"냉장"},{"unit":"25톤 윙바디 냉동(냉장포함)","type":"윙바디","ton":"25톤","spec":"냉동(냉장포함)"},{"unit":"25톤 윙바디 리프트","type":"윙바디","ton":"25톤","spec":"리프트"},{"unit":"1톤 탑","type":"탑","ton":"1톤","spec":"상온"},{"unit":"1톤 탑 냉장","type":"탑","ton":"1톤","spec":"냉장"},{"unit":"1톤 탑 냉동(냉장포함)","type":"탑","ton":"1톤","spec":"냉동(냉장포함)"},{"unit":"1톤 탑 리프트","type":"탑","ton":"1톤","spec":"리프트"},{"unit":"1.4톤 탑","type":"탑","ton":"1.4톤","spec":"상온"},{"unit":"1.4톤 탑 냉장","type":"탑","ton":"1.4톤","spec":"냉장"},{"unit":"1.4톤 탑 냉동(냉장포함)","type":"탑","ton":"1.4톤","spec":"냉동(냉장포함)"},{"unit":"1.4톤 탑 리프트","type":"탑","ton":"1.4톤","spec":"리프트"},{"unit":"2.5톤 탑","type":"탑","ton":"2.5톤","spec":"상온"},{"unit":"2.5톤 탑 냉장","type":"탑","ton":"2.5톤","spec":"냉장"},{"unit":"2.5톤 탑 냉동(냉장포함)","type":"탑","ton":"2.5톤","spec":"냉동(냉장포함)"},{"unit":"2.5톤 탑 리프트","type":"탑","ton":"2.5톤","spec":"리프트"},{"unit":"3.5톤 탑","type":"탑","ton":"3.5톤","spec":"상온"},{"unit":"3.5톤 탑 냉장","type":"탑","ton":"3.5톤","spec":"냉장"},{"unit":"3.5톤 탑 냉동(냉장포함)","type":"탑","ton":"3.5톤","spec":"냉동(냉장포함)"},{"unit":"3.5톤 탑 리프트","type":"탑","ton":"3.5톤","spec":"리프트"},{"unit":"5톤 탑","type":"탑","ton":"5톤","spec":"상온"},{"unit":"5톤 탑 냉장","type":"탑","ton":"5톤","spec":"냉장"},{"unit":"5톤 탑 냉동(냉장포함)","type":"탑","ton":"5톤","spec":"냉동(냉장포함)"},{"unit":"5톤 탑 리프트","type":"탑","ton":"5톤","spec":"리프트"},{"unit":"5톤플러스 탑","type":"탑","ton":"5톤플러스","spec":"상온"},{"unit":"5톤플러스 탑 냉장","type":"탑","ton":"5톤플러스","spec":"냉장"},{"unit":"5톤플러스 탑 냉동(냉장포함)","type":"탑","ton":"5톤플러스","spec":"냉동(냉장포함)"},{"unit":"5톤플러스 탑 리프트","type":"탑","ton":"5톤플러스","spec":"리프트"},{"unit":"5톤축 탑","type":"탑","ton":"5톤축","spec":"상온"},{"unit":"5톤축 탑 냉장","type":"탑","ton":"5톤축","spec":"냉장"},{"unit":"5톤축 탑 냉동(냉장포함)","type":"탑","ton":"5톤축","spec":"냉동(냉장포함)"},{"unit":"5톤축 탑 리프트","type":"탑","ton":"5톤축","spec":"리프트"},{"unit":"8톤 탑","type":"탑","ton":"8톤","spec":"상온"},{"unit":"8톤 탑 냉장","type":"탑","ton":"8톤","spec":"냉장"},{"unit":"8톤 탑 냉동(냉장포함)","type":"탑","ton":"8톤","spec":"냉동(냉장포함)"},{"unit":"8톤 탑 리프트","type":"탑","ton":"8톤","spec":"리프트"},{"unit":"9.5톤 탑","type":"탑","ton":"9.5톤","spec":"상온"},{"unit":"9.5톤 탑 냉장","type":"탑","ton":"9.5톤","spec":"냉장"},{"unit":"9.5톤 탑 냉동(냉장포함)","type":"탑","ton":"9.5톤","spec":"냉동(냉장포함)"},{"unit":"9.5톤 탑 리프트","type":"탑","ton":"9.5톤","spec":"리프트"},{"unit":"11톤 탑","type":"탑","ton":"11톤","spec":"상온"},{"unit":"11톤 탑 냉장","type":"탑","ton":"11톤","spec":"냉장"},{"unit":"11톤 탑 냉동(냉장포함)","type":"탑","ton":"11톤","spec":"냉동(냉장포함)"},{"unit":"11톤 탑 리프트","type":"탑","ton":"11톤","spec":"리프트"},{"unit":"14톤 탑","type":"탑","ton":"14톤","spec":"상온"},{"unit":"14톤 탑 냉장","type":"탑","ton":"14톤","spec":"냉장"},{"unit":"14톤 탑 냉동(냉장포함)","type":"탑","ton":"14톤","spec":"냉동(냉장포함)"},{"unit":"14톤 탑 리프트","type":"탑","ton":"14톤","spec":"리프트"},{"unit":"18톤 탑","type":"탑","ton":"18톤","spec":"상온"},{"unit":"18톤 탑 냉장","type":"탑","ton":"18톤","spec":"냉장"},{"unit":"18톤 탑 냉동(냉장포함)","type":"탑","ton":"18톤","spec":"냉동(냉장포함)"},{"unit":"18톤 탑 리프트","type":"탑","ton":"18톤","spec":"리프트"},{"unit":"22톤 탑","type":"탑","ton":"22톤","spec":"상온"},{"unit":"22톤 탑 냉장","type":"탑","ton":"22톤","spec":"냉장"},{"unit":"22톤 탑 냉동(냉장포함)","type":"탑","ton":"22톤","spec":"냉동(냉장포함)"},{"unit":"22톤 탑 리프트","type":"탑","ton":"22톤","spec":"리프트"},{"unit":"25톤 탑","type":"탑","ton":"25톤","spec":"상온"},{"unit":"25톤 탑 냉장","type":"탑","ton":"25톤","spec":"냉장"},{"unit":"25톤 탑 냉동(냉장포함)","type":"탑","ton":"25톤","spec":"냉동(냉장포함)"},{"unit":"25톤 탑 리프트","type":"탑","ton":"25톤","spec":"리프트"},{"unit":"18톤 방통차","type":"방통차","ton":"18톤","spec":"상온"},{"unit":"22톤 방통차","type":"방통차","ton":"22톤","spec":"상온"},{"unit":"25톤 방통차","type":"방통차","ton":"25톤","spec":"상온"},{"unit":"18톤 트레일러","type":"트레일러","ton":"18톤","spec":"상온"},{"unit":"18톤 트레일러 냉장","type":"트레일러","ton":"18톤","spec":"냉장"},{"unit":"18톤 트레일러 냉동(냉장포함)","type":"트레일러","ton":"18톤","spec":"냉동(냉장포함)"},{"unit":"18톤 트레일러 리프트","type":"트레일러","ton":"18톤","spec":"리프트"},{"unit":"22톤 트레일러","type":"트레일러","ton":"22톤","spec":"상온"},{"unit":"22톤 트레일러 냉장","type":"트레일러","ton":"22톤","spec":"냉장"},{"unit":"22톤 트레일러 냉동(냉장포함)","type":"트레일러","ton":"22톤","spec":"냉동(냉장포함)"},{"unit":"22톤 트레일러 리프트","type":"트레일러","ton":"22톤","spec":"리프트"},{"unit":"25톤 트레일러","type":"트레일러","ton":"25톤","spec":"상온"},{"unit":"25톤 트레일러 냉장","type":"트레일러","ton":"25톤","spec":"냉장"},{"unit":"25톤 트레일러 냉동(냉장포함)","type":"트레일러","ton":"25톤","spec":"냉동(냉장포함)"},{"unit":"25톤 트레일러 리프트","type":"트레일러","ton":"25톤","spec":"리프트"},{"unit":"20ft 트레일러","type":"트레일러","ton":"20ft","spec":"상온"},{"unit":"20ft 트레일러 냉장","type":"트레일러","ton":"20ft","spec":"냉장"},{"unit":"20ft 트레일러 냉동(냉장포함)","type":"트레일러","ton":"20ft","spec":"냉동(냉장포함)"},{"unit":"20ft 트레일러 리프트","type":"트레일러","ton":"20ft","spec":"리프트"},{"unit":"40ft 트레일러","type":"트레일러","ton":"40ft","spec":"상온"},{"unit":"40ft 트레일러 냉장","type":"트레일러","ton":"40ft","spec":"냉장"},{"unit":"40ft 트레일러 냉동(냉장포함)","type":"트레일러","ton":"40ft","spec":"냉동(냉장포함)"},{"unit":"40ft 트레일러 리프트","type":"트레일러","ton":"40ft","spec":"리프트"}];
+
+/* TMS 코드 맵: unit → code (숫자 or null) */
+/* TMS 코드 맵 — LOMAS 단가표 기준 165~358 사전 입력 */
+let tmsCodeMap = {"0.3톤 다마스":165,"0.5톤 라보":166,"0.5톤 라보 리프트":167,"1톤 카고/윙":168,"1톤 카고/윙 리프트":169,"1.4톤 카고/윙":170,"1.4톤 카고/윙 리프트":171,"2.5톤 카고/윙":172,"2.5톤 카고/윙 리프트":173,"3.5톤 카고/윙":174,"3.5톤 카고/윙 리프트":175,"5톤 카고/윙":176,"5톤 카고/윙 리프트":177,"5톤플러스 카고/윙":178,"5톤플러스 카고/윙 리프트":179,"5톤축 카고/윙":180,"5톤축 카고/윙 리프트":181,"8톤 카고/윙":182,"8톤 카고/윙 리프트":183,"9.5톤 카고/윙":184,"9.5톤 카고/윙 리프트":185,"11톤 카고/윙":186,"11톤 카고/윙 리프트":187,"14톤 카고/윙":188,"14톤 카고/윙 리프트":189,"18톤 카고/윙":190,"18톤 카고/윙 리프트":191,"22톤 카고/윙":192,"22톤 카고/윙 리프트":193,"25톤 카고/윙":194,"25톤 카고/윙 리프트":195,"1톤 카고":196,"1톤 카고 리프트":197,"1.4톤 카고":198,"1.4톤 카고 리프트":199,"2.5톤 카고":200,"2.5톤 카고 리프트":201,"3.5톤 카고":202,"3.5톤 카고 리프트":203,"5톤 카고":204,"5톤 카고 리프트":205,"5톤플러스 카고":206,"5톤플러스 카고 리프트":207,"5톤축 카고":208,"5톤축 카고 리프트":209,"8톤 카고":210,"8톤 카고 리프트":211,"9.5톤 카고":212,"9.5톤 카고 리프트":213,"11톤 카고":214,"11톤 카고 리프트":215,"14톤 카고":216,"14톤 카고 리프트":217,"18톤 카고":218,"18톤 카고 리프트":219,"22톤 카고":220,"22톤 카고 리프트":221,"25톤 카고":222,"25톤 카고 리프트":223,"1톤 윙바디":224,"1톤 윙바디 냉장":225,"1톤 윙바디 냉동(냉장포함)":226,"1톤 윙바디 리프트":227,"1.4톤 윙바디":228,"1.4톤 윙바디 냉장":229,"1.4톤 윙바디 냉동(냉장포함)":230,"1.4톤 윙바디 리프트":231,"2.5톤 윙바디":232,"2.5톤 윙바디 냉장":233,"2.5톤 윙바디 냉동(냉장포함)":234,"2.5톤 윙바디 리프트":235,"3.5톤 윙바디":236,"3.5톤 윙바디 냉장":237,"3.5톤 윙바디 냉동(냉장포함)":238,"3.5톤 윙바디 리프트":239,"5톤 윙바디":240,"5톤 윙바디 냉장":241,"5톤 윙바디 냉동(냉장포함)":242,"5톤 윙바디 리프트":243,"5톤플러스 윙바디":244,"5톤플러스 윙바디 냉장":245,"5톤플러스 윙바디 냉동(냉장포함)":246,"5톤플러스 윙바디 리프트":247,"5톤축 윙바디":248,"5톤축 윙바디 냉장":249,"5톤축 윙바디 냉동(냉장포함)":250,"5톤축 윙바디 리프트":251,"8톤 윙바디":252,"8톤 윙바디 냉장":253,"8톤 윙바디 냉동(냉장포함)":254,"8톤 윙바디 리프트":255,"9.5톤 윙바디":256,"9.5톤 윙바디 냉장":257,"9.5톤 윙바디 냉동(냉장포함)":258,"9.5톤 윙바디 리프트":259,"11톤 윙바디":260,"11톤 윙바디 냉장":261,"11톤 윙바디 냉동(냉장포함)":262,"11톤 윙바디 리프트":263,"14톤 윙바디":264,"14톤 윙바디 냉장":265,"14톤 윙바디 냉동(냉장포함)":266,"14톤 윙바디 리프트":267,"18톤 윙바디":268,"18톤 윙바디 냉장":269,"18톤 윙바디 냉동(냉장포함)":270,"18톤 윙바디 리프트":271,"22톤 윙바디":272,"22톤 윙바디 냉장":273,"22톤 윙바디 냉동(냉장포함)":274,"22톤 윙바디 리프트":275,"25톤 윙바디":276,"25톤 윙바디 냉장":277,"25톤 윙바디 냉동(냉장포함)":278,"25톤 윙바디 리프트":279,"1톤 탑":280,"1톤 탑 냉장":281,"1톤 탑 냉동(냉장포함)":282,"1톤 탑 리프트":283,"1.4톤 탑":284,"1.4톤 탑 냉장":285,"1.4톤 탑 냉동(냉장포함)":286,"1.4톤 탑 리프트":287,"2.5톤 탑":288,"2.5톤 탑 냉장":289,"2.5톤 탑 냉동(냉장포함)":290,"2.5톤 탑 리프트":291,"3.5톤 탑":292,"3.5톤 탑 냉장":293,"3.5톤 탑 냉동(냉장포함)":294,"3.5톤 탑 리프트":295,"5톤 탑":296,"5톤 탑 냉장":297,"5톤 탑 냉동(냉장포함)":298,"5톤 탑 리프트":299,"5톤플러스 탑":300,"5톤플러스 탑 냉장":301,"5톤플러스 탑 냉동(냉장포함)":302,"5톤플러스 탑 리프트":303,"5톤축 탑":304,"5톤축 탑 냉장":305,"5톤축 탑 냉동(냉장포함)":306,"5톤축 탑 리프트":307,"8톤 탑":308,"8톤 탑 냉장":309,"8톤 탑 냉동(냉장포함)":310,"8톤 탑 리프트":311,"9.5톤 탑":312,"9.5톤 탑 냉장":313,"9.5톤 탑 냉동(냉장포함)":314,"9.5톤 탑 리프트":315,"11톤 탑":316,"11톤 탑 냉장":317,"11톤 탑 냉동(냉장포함)":318,"11톤 탑 리프트":319,"14톤 탑":320,"14톤 탑 냉장":321,"14톤 탑 냉동(냉장포함)":322,"14톤 탑 리프트":323,"18톤 탑":324,"18톤 탑 냉장":325,"18톤 탑 냉동(냉장포함)":326,"18톤 탑 리프트":327,"22톤 탑":328,"22톤 탑 냉장":329,"22톤 탑 냉동(냉장포함)":330,"22톤 탑 리프트":331,"25톤 탑":332,"25톤 탑 냉장":333,"25톤 탑 냉동(냉장포함)":334,"25톤 탑 리프트":335,"18톤 방통차":336,"22톤 방통차":337,"25톤 방통차":338,"18톤 트레일러":339,"18톤 트레일러 냉장":340,"18톤 트레일러 냉동(냉장포함)":341,"18톤 트레일러 리프트":342,"22톤 트레일러":343,"22톤 트레일러 냉장":344,"22톤 트레일러 냉동(냉장포함)":345,"22톤 트레일러 리프트":346,"25톤 트레일러":347,"25톤 트레일러 냉장":348,"25톤 트레일러 냉동(냉장포함)":349,"25톤 트레일러 리프트":350,"20ft 트레일러":351,"20ft 트레일러 냉장":352,"20ft 트레일러 냉동(냉장포함)":353,"20ft 트레일러 리프트":354,"40ft 트레일러":355,"40ft 트레일러 냉장":356,"40ft 트레일러 냉동(냉장포함)":357,"40ft 트레일러 리프트":358};
+
+/* ════════════════════════════════════
+   앱 상태
+════════════════════════════════════ */
+let appState = { pickup:null, dropoffs:[], vehicles:[], fareMap:{} };
+let dm = { tab:'sigungu', selectedSido:null, checkedSigungu:new Set(), pendingList:[] };
+let vm = { pendingList:[], checkedTons:new Set(), checkedSpecs:new Set() };
+let openDropdownId = null;
+
+/* ════════════════════════════════════
+   페이지 전환
+════════════════════════════════════ */
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  if(page==='code') renderMappingTable();
+}
+
+/* ════════════════════════════════════
+   차량 코드 맵핑 페이지
+════════════════════════════════════ */
+(function initMappingFilters(){
+  const sel = document.getElementById('filter-type');
+  const types = [...new Set(TMS_UNITS.map(u=>u.type))];
+  types.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+})();
+
+function renderMappingTable(){
+  const fType   = document.getElementById('filter-type').value;
+  const fSpec   = document.getElementById('filter-spec').value;
+  const fMapped = document.getElementById('filter-mapped').value;
+  const fSearch = document.getElementById('filter-search').value.trim().toLowerCase();
+
+  const filtered = TMS_UNITS.filter(u=>{
+    if(fType && u.type!==fType) return false;
+    if(fSpec && u.spec!==fSpec) return false;
+    if(fMapped==='mapped' && !tmsCodeMap[u.unit]) return false;
+    if(fMapped==='empty' && tmsCodeMap[u.unit]) return false;
+    if(fSearch && !u.unit.toLowerCase().includes(fSearch)) return false;
+    return true;
+  });
+
+  const mappedTotal = TMS_UNITS.filter(u=>tmsCodeMap[u.unit]!=null && tmsCodeMap[u.unit]!=='').length;
+  document.getElementById('mapped-count-label').innerHTML =
+    `총 ${TMS_UNITS.length}개 중 <span>${mappedTotal}개</span> 코드 입력됨`;
+
+  const tbody = document.getElementById('mapping-tbody');
+  tbody.innerHTML = '';
+  if(filtered.length===0){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">조건에 맞는 항목이 없습니다.</td></tr>';
+    return;
   }
+  filtered.forEach((u, idx)=>{
+    const code = tmsCodeMap[u.unit];
+    const hasVal = code!=null && code!=='';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="center" style="color:#aaa;font-size:12px">${idx+1}</td>
+      <td style="font-weight:500">${u.unit}</td>
+      <td style="color:#555">${u.type}</td>
+      <td style="color:#555">${u.ton}</td>
+      <td><span class="badge ${u.spec==='상온'?'badge-empty':'badge-mapped'}">${u.spec}</span></td>
+      <td class="center">
+        <input class="code-input ${hasVal?'has-value':''}" type="number" min="0"
+          value="${hasVal?code:''}"
+          placeholder="숫자"
+          data-unit="${u.unit}"
+          onchange="onCodeChange(this)"
+          oninput="onCodeInput(this)">
+      </td>`;
+    tbody.appendChild(tr);
+  });
 }
 
-// 차량 표시명: 특성 빈칸이면 생략
-function vehLabel(v) {
-  const parts = [v.차종, v.톤수];
-  if (v.특성) parts.push(v.특성);
-  return parts.join(' ');
+function onCodeInput(input){
+  input.classList.toggle('has-value', input.value.trim()!=='');
+}
+function onCodeChange(input){
+  const unit = input.dataset.unit;
+  const val = input.value.trim();
+  if(val==='') delete tmsCodeMap[unit];
+  else tmsCodeMap[unit] = Number(val);
+  // 코드 카운트 갱신
+  const mappedTotal = TMS_UNITS.filter(u=>tmsCodeMap[u.unit]!=null && tmsCodeMap[u.unit]!=='').length;
+  document.getElementById('mapped-count-label').innerHTML =
+    `총 ${TMS_UNITS.length}개 중 <span>${mappedTotal}개</span> 코드 입력됨`;
 }
 
-// ===================== 상태 =====================
-const S = {
-  origin: null,          // {sido, sigungu}
-  dests: [],             // [{id, sido, sigungu}]
-  selVehs: [],           // VEHICLES 항목들의 복사본 (추가된 차량)
-  fares: {},             // key: `${destId}_${vehId}` → 숫자
-  nextDestId: 1,
-
-  modal: null,           // 'origin'|'dest'|'vehicle'
-  // 지역 모달 임시 상태
-  m_sido: null,
-  m_left: [],            // 선택된 key 목록
-  m_right: [],           // [{sido, sigungu}] 확정
-  // 차량 모달 임시 상태
-  mv_type: "",
-  mv_tons: [],
-  mv_specs: [],
-  mv_right: [],          // 선택 완료 차량들
-};
-
-// ===================== 렌더 =====================
-function $(id) { return document.getElementById(id); }
-
-function render() {
-  $('app').innerHTML = html_app();
-  bind();
+function clearAllCodes(){
+  if(!confirm('입력된 모든 TMS 코드를 초기화하시겠습니까?')) return;
+  tmsCodeMap = {};
+  renderMappingTable();
 }
 
-function html_app() {
-  return `
-  <div style="min-height:100vh; background:#f0f2f5;">
-    <header style="background:#111827; padding:0 32px; height:52px; display:flex; align-items:center; gap:12px;">
-      <span style="color:#FFD600; font-weight:900; font-size:17px; letter-spacing:-0.5px;">🚛 계약운임표 관리</span>
-    </header>
-    <div style="max-width:1280px; margin:24px auto; padding:0 16px;">
-      ${html_origin_section()}
-      ${html_grid_section()}
-    </div>
-    ${S.modal ? html_modal() : ''}
-  </div>`;
+function saveCodesAlert(){
+  const count = Object.keys(tmsCodeMap).length;
+  alert(`${count}개 코드가 저장되었습니다.\n(계약운임표의 차량 헤더에 자동 반영됩니다)`);
 }
 
-// --- 상차지 섹션 ---
-function html_origin_section() {
-  const addr = S.origin ? fullAddr(S.origin.sido, S.origin.sigungu) : null;
-  return `
-  <div class="section-box" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-    <span style="font-weight:700; font-size:14px; color:#374151;">📍 상차지</span>
-    ${addr
-      ? `<span style="background:#fefce8; border:1.5px solid #FFD600; border-radius:6px; padding:5px 14px; font-size:14px; font-weight:600;">${addr}</span>
-         <button class="btn-secondary" id="btnChangeOrigin" style="padding:5px 12px; font-size:13px;">변경</button>`
-      : `<button class="btn-primary" id="btnSetOrigin">+ 상차지 선택</button>`
+/* ── LOMAS 단가표 차량코드 매핑 (단위명 → LOMAS 코드명) ── */
+const LOMAS_MAP = {"0.3톤 다마스":"0.3톤 다마스[165]","0.5톤 라보":"0.5톤 라보[166]","0.5톤 라보 리프트":"0.5톤 라보 리프트[167]","1톤 카고/윙":"1톤 카고/윙[168]","1톤 카고/윙 리프트":"1톤 카고/윙 리프트[169]","1.4톤 카고/윙":"1.4톤 카고/윙[170]","1.4톤 카고/윙 리프트":"1.4톤 카고/윙 리프트[171]","2.5톤 카고/윙":"2.5톤 카고/윙[172]","2.5톤 카고/윙 리프트":"2.5톤 카고/윙 리프트[173]","3.5톤 카고/윙":"3.5톤 카고/윙[174]","3.5톤 카고/윙 리프트":"3.5톤 카고/윙 리프트[175]","5톤 카고/윙":"5톤 카고/윙[176]","5톤 카고/윙 리프트":"5톤 카고/윙 리프트[177]","5톤플러스 카고/윙":"5톤플러스 카고/윙[178]","5톤플러스 카고/윙 리프트":"5톤플러스 카고/윙 리프트[179]","5톤축 카고/윙":"5톤축 카고/윙[180]","5톤축 카고/윙 리프트":"5톤축 카고/윙 리프트[181]","8톤 카고/윙":"8톤 카고/윙[182]","8톤 카고/윙 리프트":"8톤 카고/윙 리프트[183]","9.5톤 카고/윙":"9.5톤 카고/윙[184]","9.5톤 카고/윙 리프트":"9.5톤 카고/윙 리프트[185]","11톤 카고/윙":"11톤 카고/윙[186]","11톤 카고/윙 리프트":"11톤 카고/윙 리프트[187]","14톤 카고/윙":"14톤 카고/윙[188]","14톤 카고/윙 리프트":"14톤 카고/윙 리프트[189]","18톤 카고/윙":"18톤 카고/윙[190]","18톤 카고/윙 리프트":"18톤 카고/윙 리프트[191]","22톤 카고/윙":"22톤 카고/윙[192]","22톤 카고/윙 리프트":"22톤 카고/윙 리프트[193]","25톤 카고/윙":"25톤 카고/윙[194]","25톤 카고/윙 리프트":"25톤 카고/윙 리프트[195]","1톤 카고":"1톤 카고[196]","1톤 카고 리프트":"1톤 카고 리프트[197]","1.4톤 카고":"1.4톤 카고[198]","1.4톤 카고 리프트":"1.4톤 카고 리프트[199]","2.5톤 카고":"2.5톤 카고[200]","2.5톤 카고 리프트":"2.5톤 카고 리프트[201]","3.5톤 카고":"3.5톤 카고[202]","3.5톤 카고 리프트":"3.5톤 카고 리프트[203]","5톤 카고":"5톤 카고[204]","5톤 카고 리프트":"5톤 카고 리프트[205]","5톤플러스 카고":"5톤플러스 카고[206]","5톤플러스 카고 리프트":"5톤플러스 카고 리프트[207]","5톤축 카고":"5톤축 카고[208]","5톤축 카고 리프트":"5톤축 카고 리프트[209]","8톤 카고":"8톤 카고[210]","8톤 카고 리프트":"8톤 카고 리프트[211]","9.5톤 카고":"9.5톤 카고[212]","9.5톤 카고 리프트":"9.5톤 카고 리프트[213]","11톤 카고":"11톤 카고[214]","11톤 카고 리프트":"11톤 카고 리프트[215]","14톤 카고":"14톤 카고[216]","14톤 카고 리프트":"14톤 카고 리프트[217]","18톤 카고":"18톤 카고[218]","18톤 카고 리프트":"18톤 카고 리프트[219]","22톤 카고":"22톤 카고[220]","22톤 카고 리프트":"22톤 카고 리프트[221]","25톤 카고":"25톤 카고[222]","25톤 카고 리프트":"25톤 카고 리프트[223]","1톤 윙바디":"1톤 윙바디[224]","1톤 윙바디 냉장":"1톤 윙바디 냉장[225]","1톤 윙바디 냉동(냉장포함)":"1톤 윙바디 냉동(냉장포함)[226]","1톤 윙바디 리프트":"1톤 윙바디 리프트[227]","1.4톤 윙바디":"1.4톤 윙바디[228]","1.4톤 윙바디 냉장":"1.4톤 윙바디 냉장[229]","1.4톤 윙바디 냉동(냉장포함)":"1.4톤 윙바디 냉동(냉장포함)[230]","1.4톤 윙바디 리프트":"1.4톤 윙바디 리프트[231]","2.5톤 윙바디":"2.5톤 윙바디[232]","2.5톤 윙바디 냉장":"2.5톤 윙바디 냉장[233]","2.5톤 윙바디 냉동(냉장포함)":"2.5톤 윙바디 냉동(냉장포함)[234]","2.5톤 윙바디 리프트":"2.5톤 윙바디 리프트[235]","3.5톤 윙바디":"3.5톤 윙바디[236]","3.5톤 윙바디 냉장":"3.5톤 윙바디 냉장[237]","3.5톤 윙바디 냉동(냉장포함)":"3.5톤 윙바디 냉동(냉장포함)[238]","3.5톤 윙바디 리프트":"3.5톤 윙바디 리프트[239]","5톤 윙바디":"5톤 윙바디[240]","5톤 윙바디 냉장":"5톤 윙바디 냉장[241]","5톤 윙바디 냉동(냉장포함)":"5톤 윙바디 냉동(냉장포함)[242]","5톤 윙바디 리프트":"5톤 윙바디 리프트[243]","5톤플러스 윙바디":"5톤플러스 윙바디[244]","5톤플러스 윙바디 냉장":"5톤플러스 윙바디 냉장[245]","5톤플러스 윙바디 냉동(냉장포함)":"5톤플러스 윙바디 냉동(냉장포함)[246]","5톤플러스 윙바디 리프트":"5톤플러스 윙바디 리프트[247]","5톤축 윙바디":"5톤축 윙바디[248]","5톤축 윙바디 냉장":"5톤축 윙바디 냉장[249]","5톤축 윙바디 냉동(냉장포함)":"5톤축 윙바디 냉동(냉장포함)[250]","5톤축 윙바디 리프트":"5톤축 윙바디 리프트[251]","8톤 윙바디":"8톤 윙바디[252]","8톤 윙바디 냉장":"8톤 윙바디 냉장[253]","8톤 윙바디 냉동(냉장포함)":"8톤 윙바디 냉동(냉장포함)[254]","8톤 윙바디 리프트":"8톤 윙바디 리프트[255]","9.5톤 윙바디":"9.5톤 윙바디[256]","9.5톤 윙바디 냉장":"9.5톤 윙바디 냉장[257]","9.5톤 윙바디 냉동(냉장포함)":"9.5톤 윙바디 냉동(냉장포함)[258]","9.5톤 윙바디 리프트":"9.5톤 윙바디 리프트[259]","11톤 윙바디":"11톤 윙바디[260]","11톤 윙바디 냉장":"11톤 윙바디 냉장[261]","11톤 윙바디 냉동(냉장포함)":"11톤 윙바디 냉동(냉장포함)[262]","11톤 윙바디 리프트":"11톤 윙바디 리프트[263]","14톤 윙바디":"14톤 윙바디[264]","14톤 윙바디 냉장":"14톤 윙바디 냉장[265]","14톤 윙바디 냉동(냉장포함)":"14톤 윙바디 냉동(냉장포함)[266]","14톤 윙바디 리프트":"14톤 윙바디 리프트[267]","18톤 윙바디":"18톤 윙바디[268]","18톤 윙바디 냉장":"18톤 윙바디 냉장[269]","18톤 윙바디 냉동(냉장포함)":"18톤 윙바디 냉동(냉장포함)[270]","18톤 윙바디 리프트":"18톤 윙바디 리프트[271]","22톤 윙바디":"22톤 윙바디[272]","22톤 윙바디 냉장":"22톤 윙바디 냉장[273]","22톤 윙바디 냉동(냉장포함)":"22톤 윙바디 냉동(냉장포함)[274]","22톤 윙바디 리프트":"22톤 윙바디 리프트[275]","25톤 윙바디":"25톤 윙바디[276]","25톤 윙바디 냉장":"25톤 윙바디 냉장[277]","25톤 윙바디 냉동(냉장포함)":"25톤 윙바디 냉동(냉장포함)[278]","25톤 윙바디 리프트":"25톤 윙바디 리프트[279]","1톤 탑":"1톤 탑[280]","1톤 탑 냉장":"1톤 탑 냉장[281]","1톤 탑 냉동(냉장포함)":"1톤 탑 냉동(냉장포함)[282]","1톤 탑 리프트":"1톤 탑 리프트[283]","1.4톤 탑":"1.4톤 탑[284]","1.4톤 탑 냉장":"1.4톤 탑 냉장[285]","1.4톤 탑 냉동(냉장포함)":"1.4톤 탑 냉동(냉장포함)[286]","1.4톤 탑 리프트":"1.4톤 탑 리프트[287]","2.5톤 탑":"2.5톤 탑[288]","2.5톤 탑 냉장":"2.5톤 탑 냉장[289]","2.5톤 탑 냉동(냉장포함)":"2.5톤 탑 냉동(냉장포함)[290]","2.5톤 탑 리프트":"2.5톤 탑 리프트[291]","3.5톤 탑":"3.5톤 탑[292]","3.5톤 탑 냉장":"3.5톤 탑 냉장[293]","3.5톤 탑 냉동(냉장포함)":"3.5톤 탑 냉동(냉장포함)[294]","3.5톤 탑 리프트":"3.5톤 탑 리프트[295]","5톤 탑":"5톤 탑[296]","5톤 탑 냉장":"5톤 탑 냉장[297]","5톤 탑 냉동(냉장포함)":"5톤 탑 냉동(냉장포함)[298]","5톤 탑 리프트":"5톤 탑 리프트[299]","5톤플러스 탑":"5톤플러스 탑[300]","5톤플러스 탑 냉장":"5톤플러스 탑 냉장[301]","5톤플러스 탑 냉동(냉장포함)":"5톤플러스 탑 냉동(냉장포함)[302]","5톤플러스 탑 리프트":"5톤플러스 탑 리프트[303]","5톤축 탑":"5톤축 탑[304]","5톤축 탑 냉장":"5톤축 탑 냉장[305]","5톤축 탑 냉동(냉장포함)":"5톤축 탑 냉동(냉장포함)[306]","5톤축 탑 리프트":"5톤축 탑 리프트[307]","8톤 탑":"8톤 탑[308]","8톤 탑 냉장":"8톤 탑 냉장[309]","8톤 탑 냉동(냉장포함)":"8톤 탑 냉동(냉장포함)[310]","8톤 탑 리프트":"8톤 탑 리프트[311]","9.5톤 탑":"9.5톤 탑[312]","9.5톤 탑 냉장":"9.5톤 탑 냉장[313]","9.5톤 탑 냉동(냉장포함)":"9.5톤 탑 냉동(냉장포함)[314]","9.5톤 탑 리프트":"9.5톤 탑 리프트[315]","11톤 탑":"11톤 탑[316]","11톤 탑 냉장":"11톤 탑 냉장[317]","11톤 탑 냉동(냉장포함)":"11톤 탑 냉동(냉장포함)[318]","11톤 탑 리프트":"11톤 탑 리프트[319]","14톤 탑":"14톤 탑[320]","14톤 탑 냉장":"14톤 탑 냉장[321]","14톤 탑 냉동(냉장포함)":"14톤 탑 냉동(냉장포함)[322]","14톤 탑 리프트":"14톤 탑 리프트[323]","18톤 탑":"18톤 탑[324]","18톤 탑 냉장":"18톤 탑 냉장[325]","18톤 탑 냉동(냉장포함)":"18톤 탑 냉동(냉장포함)[326]","18톤 탑 리프트":"18톤 탑 리프트[327]","22톤 탑":"22톤 탑[328]","22톤 탑 냉장":"22톤 탑 냉장[329]","22톤 탑 냉동(냉장포함)":"22톤 탑 냉동(냉장포함)[330]","22톤 탑 리프트":"22톤 탑 리프트[331]","25톤 탑":"25톤 탑[332]","25톤 탑 냉장":"25톤 탑 냉장[333]","25톤 탑 냉동(냉장포함)":"25톤 탑 냉동(냉장포함)[334]","25톤 탑 리프트":"25톤 탑 리프트[335]","18톤 방통차":"18톤 방통차[336]","22톤 방통차":"22톤 방통차[337]","25톤 방통차":"25톤 방통차[338]","18톤 트레일러":"18톤 트레일러[339]","18톤 트레일러 냉장":"18톤 트레일러 냉장[340]","18톤 트레일러 냉동(냉장포함)":"18톤 트레일러 냉동(냉장포함)[341]","18톤 트레일러 리프트":"18톤 트레일러 리프트[342]","22톤 트레일러":"22톤 트레일러[343]","22톤 트레일러 냉장":"22톤 트레일러 냉장[344]","22톤 트레일러 냉동(냉장포함)":"22톤 트레일러 냉동(냉장포함)[345]","22톤 트레일러 리프트":"22톤 트레일러 리프트[346]","25톤 트레일러":"25톤 트레일러[347]","25톤 트레일러 냉장":"25톤 트레일러 냉장[348]","25톤 트레일러 냉동(냉장포함)":"25톤 트레일러 냉동(냉장포함)[349]","25톤 트레일러 리프트":"25톤 트레일러 리프트[350]","20ft 트레일러":"20ft 트레일러[351]","20ft 트레일러 냉장":"20ft 트레일러 냉장[352]","20ft 트레일러 냉동(냉장포함)":"20ft 트레일러 냉동(냉장포함)[353]","20ft 트레일러 리프트":"20ft 트레일러 리프트[354]","40ft 트레일러":"40ft 트레일러[355]","40ft 트레일러 냉장":"40ft 트레일러 냉장[356]","40ft 트레일러 냉동(냉장포함)":"40ft 트레일러 냉동(냉장포함)[357]","40ft 트레일러 리프트":"40ft 트레일러 리프트[358]"};
+
+/* displayName("카고/윙 / 1톤 / 리프트") → TMS 단위명("1톤 카고/윙 리프트") 변환 */
+function displayNameToUnit(displayName) {
+  const parts = displayName.split(' / ').map(s => s.trim());
+  // parts[0]=차종, parts[1]=톤수, parts[2]=특성(있을때)
+  const type = parts[0];
+  const ton  = parts[1];
+  const spec = parts[2] || null;
+  // TMS 단위명 형식: "톤수 차종" 또는 "톤수 차종 특성"
+  return spec ? `${ton} ${type} ${spec}` : `${ton} ${type}`;
+}
+
+/* displayName → LOMAS 코드명 조회 */
+function getLomasHeader(displayName) {
+  const unitName = displayNameToUnit(displayName);
+  return LOMAS_MAP[unitName] || null;
+}
+
+function unitToDisplayName(u){
+  const specLabel = (u.spec && u.spec!=='상온') ? u.spec : '';
+  return specLabel ? `${u.type} / ${u.ton} / ${specLabel}` : `${u.type} / ${u.ton}`;
+}
+
+/* ════════════════════════════════════
+   상차지
+════════════════════════════════════ */
+(function initPickupSidos(){
+  const sel=document.getElementById('pickup-sido');
+  Object.keys(REGION).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+})();
+
+function onPickupSido(){
+  const sido=document.getElementById('pickup-sido').value;
+  const sg=document.getElementById('pickup-sigungu');
+  sg.innerHTML='<option value="">선택</option>';
+  if(sido) REGION[sido].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sg.appendChild(o); });
+  appState.pickup=null;
+  document.getElementById('pickup-result').style.display='none';
+}
+function onPickupSigungu(){
+  const sido=document.getElementById('pickup-sido').value;
+  const sg=document.getElementById('pickup-sigungu').value;
+  if(!sido||!sg){ appState.pickup=null; document.getElementById('pickup-result').style.display='none'; return; }
+  appState.pickup={sido,sigungu:sg,display:`${sido} ${sg}`};
+  document.getElementById('pickup-text').textContent=appState.pickup.display;
+  document.getElementById('pickup-result').style.display='block';
+  renderGrid();
+}
+
+/* ════════════════════════════════════
+   커스텀 드롭다운
+════════════════════════════════════ */
+function toggleDropdown(id){
+  const panel=document.getElementById(id+'-panel');
+  const isOpen=panel.classList.contains('open');
+  if(openDropdownId&&openDropdownId!==id) closeDropdown(openDropdownId);
+  if(isOpen) closeDropdown(id); else openDropdown(id);
+}
+function openDropdown(id){ document.getElementById(id+'-trigger').classList.add('open'); document.getElementById(id+'-panel').classList.add('open'); openDropdownId=id; }
+function closeDropdown(id){ document.getElementById(id+'-trigger').classList.remove('open'); document.getElementById(id+'-panel').classList.remove('open'); if(openDropdownId===id) openDropdownId=null; }
+document.addEventListener('click',e=>{ if(openDropdownId){ const d=document.getElementById(openDropdownId+'-dropdown'); if(d&&!d.contains(e.target)) closeDropdown(openDropdownId); } });
+
+function updateTonLabel(){ const n=vm.checkedTons.size; const l=document.getElementById('ton-label'); if(n===0){l.textContent='차량 톤수 선택';l.className='placeholder';}else{l.textContent=`${n}개 선택됨`;l.className='';} updateVSelectBtn(); }
+function updateSpecLabel(){ const n=vm.checkedSpecs.size; const l=document.getElementById('spec-label'); if(n===0){l.textContent='차량 특성 선택';l.className='placeholder';}else{l.textContent=`${n}개 선택됨`;l.className='';} }
+function toggleAllTons(checked){ const type=document.getElementById('v-type').value; if(!type) return; if(checked) VEHICLE_SPECS[type].tons.forEach(t=>vm.checkedTons.add(t)); else vm.checkedTons.clear(); renderTonList(type); updateTonLabel(); }
+function renderTonList(type){ const list=document.getElementById('ton-list'); list.innerHTML=''; if(!type){list.innerHTML='<div style="padding:10px 14px;color:#aaa;font-size:13px">차종을 먼저 선택하세요</div>';return;} VEHICLE_SPECS[type].tons.forEach(ton=>{ const label=document.createElement('label'); label.className='dp-chk-label'; const chk=document.createElement('input'); chk.type='checkbox'; chk.value=ton; chk.checked=vm.checkedTons.has(ton); chk.onchange=()=>{ if(chk.checked) vm.checkedTons.add(ton); else vm.checkedTons.delete(ton); updateTonAllChk(type); updateTonLabel(); }; label.appendChild(chk); label.appendChild(document.createTextNode(ton)); list.appendChild(label); }); updateTonAllChk(type); }
+function updateTonAllChk(type){ const tons=VEHICLE_SPECS[type].tons; document.getElementById('ton-all-chk').checked=tons.length>0&&tons.every(t=>vm.checkedTons.has(t)); }
+function renderSpecList(type){ const list=document.getElementById('spec-list'); list.innerHTML=''; if(!type){list.innerHTML='<div style="padding:10px 14px;color:#aaa;font-size:13px">차종을 먼저 선택하세요</div>';return;} const specs=VEHICLE_SPECS[type].specs; if(specs.length===0){list.innerHTML='<div style="padding:10px 14px;color:#aaa;font-size:13px">해당 차종은 특성이 없습니다</div>';return;} specs.forEach(spec=>{ const label=document.createElement('label'); label.className='dp-chk-label'; const chk=document.createElement('input'); chk.type='checkbox'; chk.value=spec; chk.checked=vm.checkedSpecs.has(spec); chk.onchange=()=>{ if(chk.checked) vm.checkedSpecs.add(spec); else vm.checkedSpecs.delete(spec); updateSpecLabel(); }; label.appendChild(chk); label.appendChild(document.createTextNode(spec)); list.appendChild(label); }); }
+
+/* ════════════════════════════════════
+   차량 모달
+════════════════════════════════════ */
+function openVehicleModal(){
+  vm.pendingList=[...appState.vehicles.map(v=>({...v}))];
+  vm.checkedTons=new Set(); vm.checkedSpecs=new Set();
+  const vtype=document.getElementById('v-type');
+  vtype.innerHTML='<option value="">선택</option>';
+  Object.keys(VEHICLE_SPECS).forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; vtype.appendChild(o); });
+  renderTonList(''); renderSpecList(''); updateTonLabel(); updateSpecLabel(); updateVSelectBtn();
+  renderVSelectedList();
+  document.getElementById('vehicle-modal').classList.add('open');
+}
+function closeVehicleModal(){ if(openDropdownId) closeDropdown(openDropdownId); document.getElementById('vehicle-modal').classList.remove('open'); }
+function onVehicleTypeChange(){ vm.checkedTons=new Set(); vm.checkedSpecs=new Set(); const type=document.getElementById('v-type').value; renderTonList(type); renderSpecList(type); updateTonLabel(); updateSpecLabel(); updateVSelectBtn(); }
+function updateVSelectBtn(){ document.getElementById('v-select-btn').disabled=vm.checkedTons.size===0; }
+function vehicleDisplayName(type,ton,spec){ return spec?`${type} / ${ton} / ${spec}`:`${type} / ${ton}`; }
+function addToVehicleSelected(){ const type=document.getElementById('v-type').value; if(!type||vm.checkedTons.size===0) return; const specs=vm.checkedSpecs.size>0?[...vm.checkedSpecs]:[null]; vm.checkedTons.forEach(ton=>{ specs.forEach(spec=>{ const dn=vehicleDisplayName(type,ton,spec||''); if(!vm.pendingList.find(v=>v.displayName===dn)) vm.pendingList.push({displayName:dn,tmsCode:null}); }); }); vm.checkedTons=new Set(); vm.checkedSpecs=new Set(); renderTonList(type); renderSpecList(type); updateTonLabel(); updateSpecLabel(); updateVSelectBtn(); renderVSelectedList(); }
+function renderVSelectedList(){ const list=document.getElementById('v-selected-list'); const ce=document.getElementById('v-sel-count'); const total=vm.pendingList.length; ce.textContent=total>0?`${total}`:''; if(total===0){list.innerHTML='<div class="empty-state-right"><div class="empty-icon">🚛</div>선택된 차량이 없습니다.</div>';document.getElementById('v-sel-all-chk').checked=false;return;} list.innerHTML=''; vm.pendingList.forEach((item,i)=>{ const div=document.createElement('div'); div.className='selected-item'; const chk=document.createElement('input'); chk.type='checkbox'; chk.dataset.idx=i; const span=document.createElement('span'); span.className='item-label'; span.textContent=item.displayName; div.appendChild(chk); div.appendChild(span); list.appendChild(div); }); }
+function toggleSelAllVehicle(checked){ document.querySelectorAll('#v-selected-list input[type=checkbox]').forEach(c=>c.checked=checked); }
+function deleteCheckedVehicle(){ const chks=[...document.querySelectorAll('#v-selected-list input[type=checkbox]')]; const toDelete=new Set(chks.filter(c=>c.checked).map(c=>Number(c.dataset.idx))); vm.pendingList=vm.pendingList.filter((_,i)=>!toDelete.has(i)); renderVSelectedList(); }
+function confirmVehicle(){ appState.vehicles=vm.pendingList.map(v=>({...v})); Object.keys(appState.fareMap).forEach(k=>{ const vk=k.split('__')[1]; if(!appState.vehicles.find(v=>v.displayName===vk)) delete appState.fareMap[k]; }); renderVehicleTags(); renderGrid(); closeVehicleModal(); }
+function renderVehicleTags(){ const wrap=document.getElementById('vehicle-tags'); wrap.innerHTML=''; appState.vehicles.forEach(v=>{ const tag=document.createElement('span'); tag.className='tag'; tag.innerHTML=`${v.displayName} <span class="tag-rm" onclick="removeVehicle('${v.displayName.replace(/'/g,"\\'")}')">✕</span>`; wrap.appendChild(tag); }); }
+function removeVehicle(dn){ appState.vehicles=appState.vehicles.filter(v=>v.displayName!==dn); Object.keys(appState.fareMap).forEach(k=>{if(k.endsWith('__'+dn))delete appState.fareMap[k];}); renderVehicleTags(); renderGrid(); }
+
+/* ════════════════════════════════════
+   하차지 모달
+════════════════════════════════════ */
+function openDropoffModal(){ dm={tab:'sigungu',selectedSido:null,checkedSigungu:new Set(),pendingList:[...appState.dropoffs.map(d=>({...d}))]}; document.getElementById('dropoff-modal').classList.add('open'); setDropoffTab('sigungu'); renderDSelectedList(); }
+function closeDropoffModal(){ document.getElementById('dropoff-modal').classList.remove('open'); }
+function setDropoffTab(tab){ dm.tab=tab; dm.selectedSido=null; dm.checkedSigungu=new Set(); ['sido','sigungu','eupmyeong'].forEach(t=>{ document.getElementById('dtab-'+t).classList.toggle('active',t===tab); }); renderDLeft(); updateDSelectBtn(); }
+function renderDLeft(){
+  const sidoList=document.getElementById('d-sido-list'); const sigunguAll=document.getElementById('d-sigungu-all-row'); const sigunguList=document.getElementById('d-sigungu-list'); const breadcrumb=document.getElementById('d-breadcrumb');
+  if(dm.tab==='sido'){
+    breadcrumb.style.display='none'; sidoList.style.display='grid'; sigunguAll.style.display='none'; sigunguList.style.display='none'; sidoList.innerHTML='';
+    Object.keys(REGION).forEach(sido=>{ const isChk=dm.checkedSigungu.has(sido); const div=document.createElement('div'); div.className='sido-item'+(dm.selectedSido===sido?' active':''); div.innerHTML=`${sido} ${isChk?'<span class="check-icon">✓</span>':''}`; div.onclick=()=>{ if(dm.checkedSigungu.has(sido)) dm.checkedSigungu.delete(sido); else dm.checkedSigungu.add(sido); renderDLeft(); updateDSelectBtn(); }; sidoList.appendChild(div); });
+  } else if(dm.tab==='sigungu'){
+    if(!dm.selectedSido){
+      breadcrumb.style.display='none'; sidoList.style.display='grid'; sigunguAll.style.display='none'; sigunguList.style.display='none'; sidoList.innerHTML='';
+      Object.keys(REGION).forEach(sido=>{ const div=document.createElement('div'); div.className='sido-item'; div.textContent=sido; div.onclick=()=>{ dm.selectedSido=sido; dm.checkedSigungu=new Set(); renderDLeft(); updateDSelectBtn(); }; sidoList.appendChild(div); });
+    } else {
+      breadcrumb.style.display='flex'; breadcrumb.innerHTML=`<span class="bc-link" onclick="dm.selectedSido=null;dm.checkedSigungu=new Set();renderDLeft();updateDSelectBtn()">${dm.selectedSido}</span><span style="color:#ccc"> › </span><span>시/군/구</span>`;
+      sidoList.style.display='none'; sigunguAll.style.display='block'; sigunguList.style.display='grid';
+      const sgs=REGION[dm.selectedSido]; document.getElementById('d-sigungu-all-chk').checked=sgs.every(s=>dm.checkedSigungu.has(s));
+      sigunguList.innerHTML=''; sgs.forEach(sg=>{ const isChk=dm.checkedSigungu.has(sg); const label=document.createElement('label'); label.className='chk-label'+(isChk?' checked':''); const chk=document.createElement('input'); chk.type='checkbox'; chk.checked=isChk; chk.onchange=()=>{ if(chk.checked) dm.checkedSigungu.add(sg); else dm.checkedSigungu.delete(sg); renderDLeft(); updateDSelectBtn(); }; label.appendChild(chk); label.appendChild(document.createTextNode(sg)); sigunguList.appendChild(label); });
     }
-  </div>`;
-}
-
-// --- 운임표 그리드 섹션 ---
-function html_grid_section() {
-  return `
-  <div class="section-box">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-      <span style="font-weight:700; font-size:14px; color:#374151;">📋 운임표
-        <span style="font-size:12px; font-weight:400; color:#9ca3af; margin-left:8px;">
-          하차지 ${S.dests.length}개 · 차량 ${S.selVehs.length}개
-        </span>
-      </span>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn-secondary" id="btnAddDest" style="padding:6px 14px; font-size:13px;">+ 하차지 추가</button>
-        <button class="btn-secondary" id="btnAddVeh" style="padding:6px 14px; font-size:13px;">+ 차량 추가</button>
-        <button class="btn-secondary" id="btnDelDest" style="padding:6px 14px; font-size:13px; color:#e53e3e; border-color:#e53e3e;">선택 삭제</button>
-        ${S.dests.length > 0 && S.selVehs.length > 0
-          ? `<button class="btn-primary" id="btnExport" style="padding:6px 14px; font-size:13px;">⬇ 엑셀 다운로드</button>`
-          : ''}
-      </div>
-    </div>
-    ${html_grid()}
-  </div>`;
-}
-
-function html_grid() {
-  if (S.dests.length === 0 || S.selVehs.length === 0) {
-    return `<div style="text-align:center; padding:48px 0; color:#9ca3af; font-size:14px;">
-      ${S.dests.length === 0 ? '하차지를' : '차량을'} 추가하면 운임표가 표시됩니다.
-    </div>`;
-  }
-
-  const originAddr = S.origin ? fullAddr(S.origin.sido, S.origin.sigungu) : '(상차지 미설정)';
-
-  let t = `<div class="grid-wrap"><table class="grid-table"><thead><tr>
-    <th style="width:36px;"></th>
-    <th style="min-width:170px; text-align:left; padding-left:12px;">상차지역</th>
-    <th style="min-width:170px; text-align:left; padding-left:12px;">하차지역</th>`;
-
-  for (const v of S.selVehs) {
-    t += `<th class="th-veh">${vehLabel(v)}
-      <button class="del-veh-btn del-btn" data-id="${v.id}" title="차량 삭제">✕</button>
-    </th>`;
-  }
-  t += `</tr></thead><tbody>`;
-
-  for (const dest of S.dests) {
-    const destAddr = fullAddr(dest.sido, dest.sigungu);
-    t += `<tr>
-      <td style="text-align:center; padding:0 6px; background:#fafafa; border:1px solid #e2e8f0;">
-        <input type="checkbox" class="dest-chk" data-id="${dest.id}" style="cursor:pointer; accent-color:#e53e3e;" />
-      </td>
-      <td class="addr-cell">${originAddr}</td>
-      <td class="addr-cell">${destAddr}</td>`;
-    for (const v of S.selVehs) {
-      const key = `${dest.id}_${v.id}`;
-      const val = S.fares[key] ?? '';
-      t += `<td><input type="number" class="fare-input${val !== '' ? ' filled' : ''}"
-        data-key="${key}" value="${val}" placeholder="" min="0" /></td>`;
-    }
-    t += `</tr>`;
-  }
-
-  t += `</tbody></table></div>`;
-  return t;
-}
-
-// ===================== 모달 HTML =====================
-function html_modal() {
-  if (S.modal === 'origin' || S.modal === 'dest') return html_region_modal();
-  if (S.modal === 'vehicle') return html_vehicle_modal();
-  return '';
-}
-
-// --- 지역 모달 ---
-function html_region_modal() {
-  const isOrigin = S.modal === 'origin';
-  const title = isOrigin ? '상차지 선택' : '하차지 추가';
-  const confirmLabel = isOrigin ? '상차지 설정' : '하차지 추가하기';
-
-  // 왼쪽 패널
-  let leftHtml = '';
-  if (!S.m_sido) {
-    // 시/도 목록
-    leftHtml = `<div style="font-size:13px; color:#6b7280; margin-bottom:8px;">시/도를 선택하세요</div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px;">`;
-    for (const sido of Object.keys(REGION)) {
-      leftHtml += `<button class="region-btn m-sido-btn" data-sido="${sido}">${sido}</button>`;
-    }
-    leftHtml += `</div>`;
   } else {
-    const subList = REGION[S.m_sido] || [];
-    leftHtml = `
-      <div style="margin-bottom:10px; display:flex; align-items:center; gap:6px; font-size:13px;">
-        <button class="breadcrumb-btn" id="btnBackSido">시/도</button>
-        <span style="color:#9ca3af;">›</span>
-        <span style="font-weight:600; color:#111827;">${S.m_sido}</span>
-      </div>
-      <button class="btn-secondary" id="btnSelectAllSigungu"
-        style="width:100%; font-size:12px; padding:5px; margin-bottom:8px;">
-        전체 선택 (${subList.length}개)
-      </button>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px; max-height:320px; overflow-y:auto;">`;
-    for (const sg of subList) {
-      const key = `${S.m_sido}__${sg}`;
-      const on = S.m_left.includes(key);
-      leftHtml += `<button class="region-btn m-sg-btn ${on ? 'on' : ''}" data-key="${key}" data-sido="${S.m_sido}" data-sg="${sg}">${sg}</button>`;
-    }
-    leftHtml += `</div>
-      <button class="btn-primary" id="btnModalSelect"
-        style="width:100%; margin-top:12px; ${S.m_left.length === 0 ? 'opacity:0.4;cursor:not-allowed;' : ''}">
-        선택하기 (${S.m_left.length}개)
-      </button>`;
+    breadcrumb.style.display='none'; sidoList.style.display='grid'; sigunguAll.style.display='none'; sigunguList.style.display='none';
+    sidoList.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;grid-column:1/-1">읍/면/동 단위 데이터는 준비 중입니다.</div>';
   }
+}
+function toggleAllSigungu(checked){ if(!dm.selectedSido) return; const sgs=REGION[dm.selectedSido]; if(checked) sgs.forEach(s=>dm.checkedSigungu.add(s)); else dm.checkedSigungu.clear(); renderDLeft(); updateDSelectBtn(); }
+function updateDSelectBtn(){ document.getElementById('d-select-btn').disabled=dm.checkedSigungu.size===0; }
+function addToDropoffSelected(){ if(dm.tab==='sido'){ dm.checkedSigungu.forEach(sido=>{ if(!dm.pendingList.find(p=>p.display===sido)) dm.pendingList.push({display:sido}); }); } else if(dm.tab==='sigungu'&&dm.selectedSido){ dm.checkedSigungu.forEach(sg=>{ const display=`${dm.selectedSido} ${sg}`; if(!dm.pendingList.find(p=>p.display===display)) dm.pendingList.push({display}); }); } dm.checkedSigungu=new Set(); renderDLeft(); renderDSelectedList(); updateDSelectBtn(); }
+function renderDSelectedList(){ const list=document.getElementById('d-selected-list'); const ce=document.getElementById('d-sel-count'); const total=dm.pendingList.length; ce.textContent=total>0?`${total}`:''; if(total===0){list.innerHTML='<div class="empty-state-right"><div class="empty-icon">🔍</div>선택된 하차지가 없습니다.</div>';document.getElementById('d-sel-all-chk').checked=false;return;} list.innerHTML=''; dm.pendingList.forEach((item,i)=>{ const div=document.createElement('div'); div.className='selected-item'; const chk=document.createElement('input'); chk.type='checkbox'; chk.dataset.idx=i; const span=document.createElement('span'); span.className='item-label'; span.textContent=item.display; div.appendChild(chk); div.appendChild(span); list.appendChild(div); }); }
+function toggleSelAllDropoff(checked){ document.querySelectorAll('#d-selected-list input[type=checkbox]').forEach(c=>c.checked=checked); }
+function deleteCheckedDropoff(){ const chks=[...document.querySelectorAll('#d-selected-list input[type=checkbox]')]; const toDelete=new Set(chks.filter(c=>c.checked).map(c=>Number(c.dataset.idx))); dm.pendingList=dm.pendingList.filter((_,i)=>!toDelete.has(i)); renderDSelectedList(); }
+function confirmDropoff(){ appState.dropoffs=dm.pendingList.map(p=>({display:p.display})); Object.keys(appState.fareMap).forEach(k=>{ const dk=k.split('__')[0]; if(!appState.dropoffs.find(d=>d.display===dk)) delete appState.fareMap[k]; }); renderDropoffTags(); renderGrid(); closeDropoffModal(); }
+function renderDropoffTags(){ const wrap=document.getElementById('dropoff-tags'); wrap.innerHTML=''; appState.dropoffs.forEach(d=>{ const tag=document.createElement('span'); tag.className='tag'; tag.innerHTML=`${d.display} <span class="tag-rm" onclick="removeDropoff('${d.display.replace(/'/g,"\\'")}')">✕</span>`; wrap.appendChild(tag); }); }
+function removeDropoff(display){ appState.dropoffs=appState.dropoffs.filter(d=>d.display!==display); Object.keys(appState.fareMap).forEach(k=>{if(k.startsWith(display+'__'))delete appState.fareMap[k];}); renderDropoffTags(); renderGrid(); }
 
-  // 오른쪽 패널
-  let rightHtml = '';
-  if (S.m_right.length === 0) {
-    rightHtml = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:40px 0;">선택된 지역이 없습니다.</div>`;
-  } else {
-    rightHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-        <label style="font-size:12px; color:#6b7280; cursor:pointer; display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" id="chkRightAll" style="accent-color:#1a56db;" /> 전체 선택 (${S.m_right.length}개)
-        </label>
-        <button class="btn-danger" id="btnDelRight" style="padding:3px 10px; font-size:12px;">삭제</button>
-      </div>
-      <div style="max-height:340px; overflow-y:auto;">`;
-    for (let i = 0; i < S.m_right.length; i++) {
-      const r = S.m_right[i];
-      rightHtml += `<div class="check-item">
-        <input type="checkbox" class="right-chk" data-i="${i}" />
-        <span>${fullAddr(r.sido, r.sigungu)}</span>
-      </div>`;
-    }
-    rightHtml += `</div>`;
-  }
+/* ════════════════════════════════════
+   운임 그리드 (열: 상차지역 1열, 하차지역 2열)
+════════════════════════════════════ */
+function fareKey(d,v){ return `${d}__${v}`; }
+function renderGrid(){
+  const area=document.getElementById('grid-area');
+  if(!appState.pickup||appState.dropoffs.length===0||appState.vehicles.length===0){ area.innerHTML='<div class="empty-grid">상차지 · 하차지 · 차량을 선택하면 운임표가 생성됩니다.</div>'; return; }
+  let html='<div class="table-wrap"><table class="fare-table"><thead><tr>';
+  html+='<th class="left">상차지역</th><th class="left">하차지역</th>';
+  appState.vehicles.forEach(v=>{
+    const lomas = getLomasHeader(v.displayName);
+    html+=`<th>${lomas || v.displayName}</th>`;
+  });
+  html+='</tr></thead><tbody>';
+  appState.dropoffs.forEach(d=>{
+    html+=`<tr><td class="left">${appState.pickup.display}</td><td class="left">${d.display}</td>`;
+    appState.vehicles.forEach(v=>{ const key=fareKey(d.display,v.displayName); const val=appState.fareMap[key]??''; html+=`<td><input class="fare-input" type="number" min="0" step="100" value="${val}" data-key="${key}" onchange="onFareChange(this)" placeholder=""></td>`; });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  area.innerHTML=html;
+}
+function onFareChange(input){ const key=input.dataset.key; const val=input.value.trim(); if(val==='') delete appState.fareMap[key]; else appState.fareMap[key]=Number(val); }
 
-  const canConfirm = isOrigin ? S.m_right.length > 0 : S.m_right.length > 0;
-
-  return `
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2 style="font-size:17px; font-weight:700;">${title}</h2>
-        <button id="btnModalClose" style="background:none; border:none; font-size:22px; cursor:pointer; color:#9ca3af; line-height:1;">×</button>
-      </div>
-      <div class="modal-body">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:28px; min-height:380px;">
-          <div>
-            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:10px;">지역 선택</div>
-            ${leftHtml}
-          </div>
-          <div>
-            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:10px;">선택된 지역</div>
-            ${rightHtml}
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" id="btnModalCancel">닫기</button>
-        <button class="btn-primary" id="btnModalConfirm"
-          ${!canConfirm ? 'disabled' : ''}>${confirmLabel}</button>
-      </div>
-    </div>
-  </div>`;
+/* ════════════════════════════════════
+   엑셀 다운로드 (1열:상차지역, 2열:하차지역)
+════════════════════════════════════ */
+function downloadExcel(){
+  if(!appState.pickup){alert('상차지를 선택하세요.');return;}
+  if(!appState.dropoffs.length){alert('하차지를 추가하세요.');return;}
+  if(!appState.vehicles.length){alert('차량을 추가하세요.');return;}
+  const header=['상차지역','하차지역'];
+  appState.vehicles.forEach(v=>{
+    const lomas = getLomasHeader(v.displayName);
+    header.push(lomas || v.displayName);  // LOMAS 코드 있으면 그걸로, 없으면 표시명 그대로
+  });
+  const rows=[header];
+  appState.dropoffs.forEach(d=>{
+    const row=[appState.pickup.display, d.display];
+    appState.vehicles.forEach(v=>{ const val=appState.fareMap[fareKey(d.display,v.displayName)]; row.push(val!=null?val:''); });
+    rows.push(row);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:18},{wch:18},...appState.vehicles.map(()=>({wch:24}))];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'계약운임표');
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`계약운임표_${appState.pickup.display.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// --- 차량 모달 ---
-function html_vehicle_modal() {
-  const types = Object.keys(VEHICLE_SPECS);
-  const availTons = S.mv_type ? VEHICLE_SPECS[S.mv_type].tons : [];
-  const allSpecsForTons = S.mv_tons.length > 0
-    ? [...new Set(
-        VEHICLES.filter(v => v.차종 === S.mv_type && S.mv_tons.includes(v.톤수)).map(v => v.특성)
-      )]
-    : [];
-  const availSpecs = S.mv_type ? VEHICLE_SPECS[S.mv_type].specs : [];
-
-  let rightHtml = '';
-  if (S.mv_right.length === 0) {
-    rightHtml = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:40px 0;">선택된 차량이 없습니다.</div>`;
-  } else {
-    rightHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-        <label style="font-size:12px; color:#6b7280; cursor:pointer; display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" id="chkVehRightAll" style="accent-color:#1a56db;" /> 전체 선택 (${S.mv_right.length}개)
-        </label>
-        <button class="btn-danger" id="btnDelVehRight" style="padding:3px 10px; font-size:12px;">삭제</button>
-      </div>
-      <div style="max-height:340px; overflow-y:auto;">`;
-    for (let i = 0; i < S.mv_right.length; i++) {
-      const v = S.mv_right[i];
-      rightHtml += `<div class="check-item">
-        <input type="checkbox" class="veh-right-chk" data-i="${i}" />
-        <span>${vehLabel(v)}</span>
-      </div>`;
-    }
-    rightHtml += `</div>`;
-  }
-
-  const canSelect = S.mv_type && S.mv_tons.length > 0;
-
-  return `
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2 style="font-size:17px; font-weight:700;">차량 추가</h2>
-        <button id="btnModalClose" style="background:none; border:none; font-size:22px; cursor:pointer; color:#9ca3af; line-height:1;">×</button>
-      </div>
-      <div class="modal-body">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:28px; min-height:380px;">
-          <!-- 왼쪽 -->
-          <div>
-            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:14px;">차량 조합 선택</div>
-
-            <div style="margin-bottom:14px;">
-              <label style="font-size:13px; font-weight:600; display:block; margin-bottom:5px;">
-                차종 <span style="color:#e53e3e;">*</span>
-              </label>
-              <select id="selVehType" class="sel">
-                <option value="">차종 선택</option>
-                ${types.map(t => `<option value="${t}" ${S.mv_type===t?'selected':''}>${t}</option>`).join('')}
-              </select>
-            </div>
-
-            <div style="margin-bottom:14px;">
-              <label style="font-size:13px; font-weight:600; display:block; margin-bottom:5px;">
-                차량 톤수 <span style="color:#e53e3e;">*</span>
-              </label>
-              <div style="border:1.5px solid #e5e7eb; border-radius:6px; padding:8px; max-height:160px; overflow-y:auto;
-                ${!S.mv_type ? 'opacity:0.35; pointer-events:none;' : ''}">
-                <div class="check-item">
-                  <input type="checkbox" id="chkTonAll" />
-                  <label for="chkTonAll" style="cursor:pointer; font-size:13px;">전체 선택</label>
-                </div>
-                ${availTons.map(t => `
-                  <div class="check-item">
-                    <input type="checkbox" class="chk-ton" value="${t}" ${S.mv_tons.includes(t)?'checked':''} />
-                    <label style="cursor:pointer;">${t}</label>
-                  </div>`).join('')}
-              </div>
-            </div>
-
-            <div style="margin-bottom:16px;">
-              <label style="font-size:13px; font-weight:600; display:block; margin-bottom:5px;">차량 특성</label>
-              <div style="border:1.5px solid #e5e7eb; border-radius:6px; padding:8px;
-                ${S.mv_tons.length === 0 ? 'opacity:0.35; pointer-events:none;' : ''}">
-                ${availSpecs.length === 0
-                  ? '<span style="font-size:12px; color:#9ca3af;">톤수를 먼저 선택하세요</span>'
-                  : availSpecs.map(s => `
-                    <div class="check-item">
-                      <input type="checkbox" class="chk-spec" value="${s}" ${S.mv_specs.includes(s)?'checked':''} />
-                      <label style="cursor:pointer;">${s === '' ? '(특성없음)' : s}</label>
-                    </div>`).join('')}
-              </div>
-            </div>
-
-            <button class="btn-primary" id="btnVehSelect"
-              style="width:100%; ${!canSelect ? 'opacity:0.4; cursor:not-allowed;' : ''}">
-              선택하기
-            </button>
-          </div>
-
-          <!-- 오른쪽 -->
-          <div>
-            <div style="font-size:13px; font-weight:700; color:#374151; margin-bottom:10px;">선택된 차량</div>
-            ${rightHtml}
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" id="btnModalCancel">닫기</button>
-        <button class="btn-primary" id="btnModalConfirm"
-          ${S.mv_right.length === 0 ? 'disabled' : ''}>차량 추가하기</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ===================== 이벤트 바인딩 =====================
-function bind() {
-  // 메인
-  $('btnSetOrigin')?.addEventListener('click', () => openRegionModal('origin'));
-  $('btnChangeOrigin')?.addEventListener('click', () => openRegionModal('origin'));
-  $('btnAddDest')?.addEventListener('click', () => openRegionModal('dest'));
-  $('btnAddVeh')?.addEventListener('click', () => {
+/* 모달 외부 클릭 닫기 */
+document.getElementById('dropoff-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDropoffModal();});
+document.getElementById('vehicle-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeVehicleModal();});
+</script>
+</body>
+</html>
