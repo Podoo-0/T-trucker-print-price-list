@@ -179,6 +179,8 @@ input.form-input:focus { border-color: #025F68; }
 .badge-mapped { background:#dcfce7; color:#166534; }
 .badge-empty { background:#f3f4f6; color:#9ca3af; }
 
+.btn-reset { float:right; background:none; border:1px solid #ccc; border-radius:4px; font-size:11px; color:#888; cursor:pointer; padding:1px 7px; font-family:inherit; transition:all .15s; }
+.btn-reset:hover { border-color: #025F68; color: #025F68; background: #e0f0f1; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
@@ -206,7 +208,7 @@ input.form-input:focus { border-color: #025F68; }
   <div class="top-row">
     <!-- 상차지 -->
     <div class="card" style="flex:0 0 auto; min-width:240px">
-      <div class="card-title">상차지</div>
+      <div class="card-title">상차지 <button class="btn-reset" onclick="resetPickup()" title="초기화">↺ 초기화</button></div>
       <div class="form-row">
         <label class="form-label">시/도</label>
         <select class="form-select" id="pickup-sido" style="width:115px" onchange="onPickupSido()"><option value="">선택</option></select>
@@ -223,7 +225,7 @@ input.form-input:focus { border-color: #025F68; }
     </div>
     <!-- 하차지 -->
     <div class="card" style="flex:1; min-width:260px">
-      <div class="card-title">하차지</div>
+      <div class="card-title">하차지 <button class="btn-reset" onclick="resetDropoff()" title="초기화">↺ 초기화</button></div>
       <div class="form-row">
         <button class="btn btn-primary" onclick="openDropoffModal()">+ 하차지 추가</button>
       </div>
@@ -407,6 +409,15 @@ input.form-input:focus { border-color: #025F68; }
 /* ════════════════════════════════════
    데이터
 ════════════════════════════════════ */
+const SIDO_FULL = {
+  "서울시":"서울특별시","부산시":"부산광역시","대구시":"대구광역시",
+  "인천시":"인천광역시","광주시":"광주광역시","대전시":"대전광역시",
+  "울산시":"울산광역시","경기도":"경기도","강원도":"강원특별자치도",
+  "충청북도":"충청북도","충청남도":"충청남도","전라북도":"전라북도",
+  "전라남도":"전라남도","경상북도":"경상북도","경상남도":"경상남도",
+  "제주도":"제주특별자치도"
+};
+
 const REGION = {
   "서울시":["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
   "부산시":["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],
@@ -573,6 +584,26 @@ function unitToDisplayName(u){
 /* ════════════════════════════════════
    상차지
 ════════════════════════════════════ */
+/* 시/도 약칭 → 풀네임 변환 */
+function fullRegionName(sido, sigungu) {
+  const fullSido = SIDO_FULL[sido] || sido;
+  return sigungu ? `${fullSido} ${sigungu}` : fullSido;
+}
+
+function resetPickup(){
+  document.getElementById('pickup-sido').value = '';
+  document.getElementById('pickup-sigungu').innerHTML = '<option value="">선택</option>';
+  appState.pickup = null;
+  document.getElementById('pickup-result').style.display = 'none';
+  renderGrid();
+}
+
+function resetDropoff(){
+  appState.dropoffs = [];
+  Object.keys(appState.fareMap).forEach(k => delete appState.fareMap[k]);
+  renderDropoffTags();
+  renderGrid();
+}
 (function initPickupSidos(){
   const sel=document.getElementById('pickup-sido');
   Object.keys(REGION).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
@@ -590,7 +621,7 @@ function onPickupSigungu(){
   const sido=document.getElementById('pickup-sido').value;
   const sg=document.getElementById('pickup-sigungu').value;
   if(!sido||!sg){ appState.pickup=null; document.getElementById('pickup-result').style.display='none'; return; }
-  appState.pickup={sido,sigungu:sg,display:`${sido} ${sg}`};
+  appState.pickup={sido,sigungu:sg,display:fullRegionName(sido,sg)};
   document.getElementById('pickup-text').textContent=appState.pickup.display;
   document.getElementById('pickup-result').style.display='block';
   renderGrid();
@@ -669,7 +700,7 @@ function renderDLeft(){
 }
 function toggleAllSigungu(checked){ if(!dm.selectedSido) return; const sgs=REGION[dm.selectedSido]; if(checked) sgs.forEach(s=>dm.checkedSigungu.add(s)); else dm.checkedSigungu.clear(); renderDLeft(); updateDSelectBtn(); }
 function updateDSelectBtn(){ document.getElementById('d-select-btn').disabled=dm.checkedSigungu.size===0; }
-function addToDropoffSelected(){ if(dm.tab==='sido'){ dm.checkedSigungu.forEach(sido=>{ if(!dm.pendingList.find(p=>p.display===sido)) dm.pendingList.push({display:sido}); }); } else if(dm.tab==='sigungu'&&dm.selectedSido){ dm.checkedSigungu.forEach(sg=>{ const display=`${dm.selectedSido} ${sg}`; if(!dm.pendingList.find(p=>p.display===display)) dm.pendingList.push({display}); }); } dm.checkedSigungu=new Set(); renderDLeft(); renderDSelectedList(); updateDSelectBtn(); }
+function addToDropoffSelected(){ if(dm.tab==='sido'){ dm.checkedSigungu.forEach(sido=>{ const display=fullRegionName(sido,null); if(!dm.pendingList.find(p=>p.display===display)) dm.pendingList.push({display}); }); } else if(dm.tab==='sigungu'&&dm.selectedSido){ dm.checkedSigungu.forEach(sg=>{ const display=fullRegionName(dm.selectedSido,sg); if(!dm.pendingList.find(p=>p.display===display)) dm.pendingList.push({display}); }); } dm.checkedSigungu=new Set(); renderDLeft(); renderDSelectedList(); updateDSelectBtn(); }
 function renderDSelectedList(){ const list=document.getElementById('d-selected-list'); const ce=document.getElementById('d-sel-count'); const total=dm.pendingList.length; ce.textContent=total>0?`${total}`:''; if(total===0){list.innerHTML='<div class="empty-state-right"><div class="empty-icon">🔍</div>선택된 하차지가 없습니다.</div>';document.getElementById('d-sel-all-chk').checked=false;return;} list.innerHTML=''; dm.pendingList.forEach((item,i)=>{ const div=document.createElement('div'); div.className='selected-item'; const chk=document.createElement('input'); chk.type='checkbox'; chk.dataset.idx=i; const span=document.createElement('span'); span.className='item-label'; span.textContent=item.display; div.appendChild(chk); div.appendChild(span); list.appendChild(div); }); }
 function toggleSelAllDropoff(checked){ document.querySelectorAll('#d-selected-list input[type=checkbox]').forEach(c=>c.checked=checked); }
 function deleteCheckedDropoff(){ const chks=[...document.querySelectorAll('#d-selected-list input[type=checkbox]')]; const toDelete=new Set(chks.filter(c=>c.checked).map(c=>Number(c.dataset.idx))); dm.pendingList=dm.pendingList.filter((_,i)=>!toDelete.has(i)); renderDSelectedList(); }
@@ -681,19 +712,32 @@ function removeDropoff(display){ appState.dropoffs=appState.dropoffs.filter(d=>d
    운임 그리드 (열: 상차지역 1열, 하차지역 2열)
 ════════════════════════════════════ */
 function fareKey(d,v){ return `${d}__${v}`; }
+/* TMS 코드 기준 오름차순 정렬된 차량 배열 반환 */
+function sortedVehicles(){
+  return [...appState.vehicles].sort((a, b) => {
+    const codeA = tmsCodeMap[displayNameToUnit(a.displayName)] ?? 99999;
+    const codeB = tmsCodeMap[displayNameToUnit(b.displayName)] ?? 99999;
+    return codeA - codeB;
+  });
+}
+
 function renderGrid(){
   const area=document.getElementById('grid-area');
   if(!appState.pickup||appState.dropoffs.length===0||appState.vehicles.length===0){ area.innerHTML='<div class="empty-grid">상차지 · 하차지 · 차량을 선택하면 운임표가 생성됩니다.</div>'; return; }
+  const vehicles = sortedVehicles();
   let html='<div class="table-wrap"><table class="fare-table"><thead><tr>';
   html+='<th class="left">상차지역</th><th class="left">하차지역</th>';
-  appState.vehicles.forEach(v=>{
+  vehicles.forEach(v=>{
     const lomas = getLomasHeader(v.displayName);
-    html+=`<th>${lomas || v.displayName}</th>`;
+    // 예: "1톤 카고[196]" → "1톤 카고<br>[196]"
+    const thLabel = lomas ? lomas.replace(/(\[)/, '<br>[$1'.slice(0,5)) : v.displayName;
+    const thLabelFinal = lomas ? lomas.replace(/\[(\d+)\]/, '<br>[$1]') : v.displayName;
+    html+=`<th>${thLabelFinal}</th>`;
   });
   html+='</tr></thead><tbody>';
   appState.dropoffs.forEach(d=>{
     html+=`<tr><td class="left">${appState.pickup.display}</td><td class="left">${d.display}</td>`;
-    appState.vehicles.forEach(v=>{ const key=fareKey(d.display,v.displayName); const val=appState.fareMap[key]??''; html+=`<td><input class="fare-input" type="number" min="0" step="100" value="${val}" data-key="${key}" onchange="onFareChange(this)" placeholder=""></td>`; });
+    vehicles.forEach(v=>{ const key=fareKey(d.display,v.displayName); const val=appState.fareMap[key]??''; html+=`<td><input class="fare-input" type="number" min="0" step="100" value="${val}" data-key="${key}" onchange="onFareChange(this)" placeholder=""></td>`; });
     html+='</tr>';
   });
   html+='</tbody></table></div>';
@@ -709,19 +753,29 @@ function downloadExcel(){
   if(!appState.dropoffs.length){alert('하차지를 추가하세요.');return;}
   if(!appState.vehicles.length){alert('차량을 추가하세요.');return;}
   const header=['상차지역','하차지역'];
-  appState.vehicles.forEach(v=>{
+  const vehicles = sortedVehicles();
+  vehicles.forEach(v=>{
     const lomas = getLomasHeader(v.displayName);
-    header.push(lomas || v.displayName);  // LOMAS 코드 있으면 그걸로, 없으면 표시명 그대로
+    // 예: "1톤 카고[196]" → "1톤 카고\n[196]"
+    const excelHeader = lomas ? lomas.replace(/\[(\d+)\]/, '\n[$1]') : v.displayName;
+    header.push(excelHeader);
   });
   const rows=[header];
   appState.dropoffs.forEach(d=>{
     const row=[appState.pickup.display, d.display];
-    appState.vehicles.forEach(v=>{ const val=appState.fareMap[fareKey(d.display,v.displayName)]; row.push(val!=null?val:''); });
+    vehicles.forEach(v=>{ const val=appState.fareMap[fareKey(d.display,v.displayName)]; row.push(val!=null?val:''); });
     rows.push(row);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:18},{wch:18},...appState.vehicles.map(()=>({wch:24}))];
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'계약운임표');
+  ws['!cols']=[{wch:18},{wch:18},...vehicles.map(()=>({wch:24}))];
+  // 헤더 행 줄바꿈(wrap text) 적용
+  ws['!rows'] = [{hpt:30}]; // 헤더 행 높이
+  const headerLen = 2 + vehicles.length;
+  for(let c=2; c<headerLen; c++){
+    const cellAddr = XLSX.utils.encode_cell({r:0, c});
+    if(ws[cellAddr]) ws[cellAddr].s = { alignment: { wrapText: true, vertical: 'center', horizontal: 'center' } };
+  }
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'운임단가');
   const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   const blob=new Blob([wbout],{type:'application/octet-stream'});
   const url=URL.createObjectURL(blob);
